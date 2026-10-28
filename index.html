@@ -86,6 +86,46 @@ table.db-table tr:hover td{background:var(--accent-light)}
 .vacuna-row .vr-label{flex:1;font-size:13px;font-weight:500;color:var(--text)}
 .vacuna-row select{width:120px;flex-shrink:0;padding:5px 8px;font-size:13px}
 .vacuna-row input[type="text"]{flex:1;padding:5px 8px;font-size:13px}
+/* Búsqueda y recientes (barra lateral) */
+.side-search{padding:6px 14px 8px}
+.side-search input[type="text"]{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:#fff;padding:7px 10px;font-size:12px}
+.side-search input::placeholder{color:rgba(255,255,255,.4)}
+.side-search input:focus{border-color:#7ec89a;box-shadow:none}
+.recent-item{padding:7px 20px;cursor:pointer;border-left:3px solid transparent;color:rgba(255,255,255,.7);transition:all .15s}
+.recent-item:hover{background:rgba(255,255,255,.06);color:#fff}
+.recent-item.in-session{border-left-color:#7ec89a;background:rgba(255,255,255,.08);color:#fff}
+.recent-item .ri-id{font-size:12px;font-weight:600;letter-spacing:.3px}
+.recent-item .ri-meta{font-size:11px;opacity:.6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.recent-empty{padding:4px 20px 6px;font-size:11px;color:rgba(255,255,255,.4)}
+/* Barra de viajeros en consulta (pestañas) */
+.group-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:22px;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow)}
+.gb-label{font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--text-muted);margin-right:4px}
+.ptab{display:inline-flex;align-items:center;gap:6px;padding:5px 6px 5px 12px;border:1px solid var(--border);border-radius:20px;cursor:pointer;font-size:13px;background:#fff;transition:all .15s;user-select:none}
+.ptab:hover{border-color:var(--accent)}
+.ptab.active{background:var(--primary);border-color:var(--primary);color:#fff}
+.ptab small{opacity:.65;font-size:11px}
+.ptab .pt-dot{width:7px;height:7px;border-radius:50%;background:#e0a030}
+.ptab .pt-saved{font-size:11px;color:var(--accent)}
+.ptab.active .pt-saved{color:#7ec89a}
+.ptab .pt-x{background:none;border:none;color:inherit;opacity:.45;cursor:pointer;font-size:13px;padding:0 4px;line-height:1}
+.ptab .pt-x:hover{opacity:1}
+.gb-spacer{flex:1}
+label.gb-toggle{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text);cursor:pointer;text-transform:none;letter-spacing:0;font-weight:500}
+.gb-toggle input{accent-color:var(--accent);width:15px;height:15px}
+.shared-banner{background:#eef4ff;border:1px solid #b9cdf0;color:#24406e;border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:16px;line-height:1.5}
+.shared-banner.off{background:#f4f4f2;border-color:#ddd8ce;color:#555}
+/* Matriz de grupo */
+table.mx{width:100%;border-collapse:collapse;font-size:13px}
+table.mx th{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);font-weight:600;padding:6px 8px;text-align:left;border-bottom:1px solid var(--border)}
+table.mx th.mx-p{text-align:center;color:var(--primary)}
+table.mx th.mx-p.mx-active{background:var(--accent-light);border-radius:6px 6px 0 0}
+table.mx td{padding:5px 8px;border-bottom:1px solid #f0ede6;vertical-align:middle}
+table.mx td.mx-c{text-align:center;white-space:nowrap}
+table.mx tr:hover td{background:#faf9f6}
+table.mx tr.mx-sep td{border-top:2px solid var(--border)}
+.mx-c input[type="checkbox"]{width:16px;height:16px;accent-color:var(--accent);cursor:pointer;vertical-align:middle}
+.mx-c select{width:auto;padding:3px 4px;font-size:12px;margin-left:4px;display:inline-block}
+.db-search{flex:1;min-width:220px;max-width:360px}
 </style>
 </head>
 <body>
@@ -105,12 +145,15 @@ table.db-table tr:hover td{background:var(--accent-light)}
   <div class="nav-item" id="nav-viaje" onclick="showSection('viaje')"><div class="step-num"><span>3</span></div> Viaje</div>
   <div class="nav-item" id="nav-vacunas" onclick="showSection('vacunas')"><div class="step-num"><span>4</span></div> Vacunas previas</div>
   <div class="nav-item" id="nav-resumen" onclick="showSection('resumen')"><div class="step-num"><span>5</span></div> Resumen y outputs</div>
-  <div class="sidebar-section">Datos</div>
+  <div class="sidebar-section">Pacientes</div>
+  <div class="side-search"><input type="text" id="sideSearch" placeholder="🔍 Buscar ID, destino, fecha…" oninput="renderRecent()"></div>
+  <div id="recentList"></div>
   <div class="sidebar-section">Herramientas</div>
   <div class="nav-item" id="nav-malaria" onclick="showSection('malaria')"><div class="step-num"><span>🦟</span></div> Guia malaria</div>
   <div class="nav-item" id="nav-db" onclick="showSection('db')"><div class="step-num"><span>📋</span></div> Base de datos</div>
 </nav>
 <main class="main-content">
+<div id="groupBar" class="group-bar"></div>
 
 <!-- S1 PACIENTE -->
 <div class="tab-content active" id="sec-paciente">
@@ -244,6 +287,7 @@ table.db-table tr:hover td{background:var(--accent-light)}
 <!-- S3 VIAJE -->
 <div class="tab-content" id="sec-viaje">
   <div class="section-header"><h2>Datos del viaje</h2><p>Destinos, caracteristicas y actividades de riesgo</p></div>
+  <div id="viajeSharedBanner"></div>
   <div class="card">
     <div class="card-title">Destinos</div>
     <div class="form-grid cols-3" style="align-items:end">
@@ -345,6 +389,7 @@ table.db-table tr:hover td{background:var(--accent-light)}
 <!-- S4 VACUNAS -->
 <div class="tab-content" id="sec-vacunas">
   <div class="section-header"><h2>Vacunas del viajero previas</h2><p>Marca las documentadas - se desplegara el ano para cada una</p></div>
+  <div id="groupVacMatrix"></div>
   <div class="card">
     <div class="card-title">Vacunas documentadas</div>
     <div class="check-group" id="vacunasPreviasGroup" style="margin-bottom:12px">
@@ -410,13 +455,15 @@ table.db-table tr:hover td{background:var(--accent-light)}
     <button class="btn btn-secondary" onclick="showSection('vacunas')">Atras</button>
     <div style="flex:1"></div>
     <button class="btn btn-secondary" onclick="generatePrompt()">Generar prompt para Claude</button>
-    <button class="btn btn-accent" onclick="saveCase()">Guardar en base de datos</button>
+    <button class="btn btn-secondary hidden" id="btnGroupPrompt" onclick="generateGroupPrompt()">👥 Prompt de grupo</button>
+    <button class="btn btn-accent" id="btnSave" onclick="saveCase()">Guardar en base de datos</button>
+    <button class="btn btn-accent hidden" id="btnSaveGroup" onclick="saveGroup()">👥 Guardar grupo</button>
     <button class="btn btn-primary" id="btnWord" onclick="generateWord()">Descargar informe Word</button>
   </div>
   <div id="promptSection" class="hidden" style="margin-top:20px">
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-        <div class="card-title" style="margin:0;border:none">Prompt para Claude</div>
+        <div class="card-title" id="promptTitle" style="margin:0;border:none">Prompt para Claude</div>
         <button class="btn btn-secondary btn-sm" onclick="copyPrompt()">Copiar</button>
       </div>
       <div class="prompt-box" id="promptText"></div>
@@ -457,6 +504,7 @@ table.db-table tr:hover td{background:var(--accent-light)}
 <div class="tab-content" id="sec-db">
   <div class="section-header"><h2>Base de datos de casos</h2><p>Registro acumulativo anonimizado</p></div>
   <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap">
+    <input type="text" id="dbSearch" class="db-search" placeholder="🔍 Buscar por ID, iniciales, fecha nac., destino, fecha…" oninput="loadDB()">
     <button class="btn btn-primary" onclick="exportCSV()">Exportar todo a CSV</button>
     <button class="btn btn-secondary" onclick="loadDB()">Actualizar</button>
     <button class="btn btn-danger" onclick="confirmClearDB()">Borrar base de datos</button>
@@ -465,7 +513,7 @@ table.db-table tr:hover td{background:var(--accent-light)}
   <div class="card">
     <div class="db-table-wrap">
       <table class="db-table">
-        <thead><tr><th>ID</th><th>Fecha</th><th>Edad/Sexo</th><th>Destinos</th><th>Tipo viaje</th><th>Dias hasta salida</th><th>Inmunosupr.</th><th>Acc.</th></tr></thead>
+        <thead><tr><th>ID</th><th>Fecha</th><th>Edad/Sexo</th><th>Destinos</th><th>Tipo viaje</th><th>Dias hasta salida</th><th>Inmunosupr.</th><th>Acciones</th></tr></thead>
         <tbody id="dbTableBody"></tbody>
       </table>
     </div>
@@ -794,6 +842,7 @@ function showSection(name){
   const n=document.getElementById('nav-'+name);if(n)n.classList.add('active');
   if(name==='resumen')buildSummary();
   if(name==='db')loadDB();
+  onSectionShown(name);
   window.scrollTo(0,0);
 }
 
@@ -982,21 +1031,8 @@ const ANYOS=(()=>{const a=[];const y=new Date().getFullYear();for(let i=y;i>=199
 function updateVacunaAnyo(chipEl){
   setTimeout(()=>{
     const cb=chipEl.querySelector('input[type="checkbox"]');
-    const v=cb.value;
-    const ctr=document.getElementById('vacunasAnyoContainer');
-    const eid='anyo_'+v.replace(/[^a-zA-Z0-9]/g,'_');
-    if(cb.checked){
-      if(!document.getElementById(eid)){
-        const row=document.createElement('div');row.className='vacuna-row';row.id=eid;
-        const opts=ANYOS.map(y=>`<option value="${y}">${y}</option>`).join('');
-        row.innerHTML=`<span class="vr-label">${v}</span>
-          <select id="sel_${eid}"><option value="">Ano desconocido</option>${opts}</select>
-          <input type="text" id="notas_${eid}" placeholder="Pauta / notas">`;
-        ctr.appendChild(row);
-      }
-    } else {
-      const ex=document.getElementById(eid);if(ex)ex.remove();
-    }
+    if(cb.checked) createVacunaRow(cb.value);
+    else {const ex=document.getElementById(vacEid(cb.value));if(ex)ex.remove();}
   },0);
 }
 
@@ -1033,10 +1069,14 @@ function collectData(){
   const otroNotas=document.getElementById('otroViajeNotas').value;
   const idx=tiposViaje.indexOf('Otro');
   if(idx!==-1&&otroNotas)tiposViaje[idx]='Otro: '+otroNotas;
+  const fcISO=document.getElementById('fechaConsultaInput').value||todayISO();
   return {
     id:document.getElementById('caseIDDisplay').textContent,
-    fechaConsulta:new Date().toLocaleDateString('es-ES'),
-    fechaConsultaISO:new Date().toISOString().split('T')[0],
+    fechaConsulta:isoToES(fcISO),
+    fechaConsultaISO:fcISO,
+    tipoViajeRaw:getChecked('tipoViajeGroup'),
+    otroViajeNotas:otroNotas,
+    vacunasDetalle:getVacunasDetalle(),
     iniciales:document.getElementById('iniciales').value,
     fechaNac:document.getElementById('fechaNac').value,
     edad:document.getElementById('edad').value,
@@ -1223,6 +1263,7 @@ function generatePrompt(){
   }
   const prompt='Eres un experto en medicina del viajero. Analiza los siguientes datos de un paciente y proporciona recomendaciones de vacunacion y quimioprofilaxis antipaludica, basadas en las guias vigentes (MSC/CCAES, CDC Yellow Book, WHO International Travel and Health).\n\n===========================================\nDATOS DEL PACIENTE\n===========================================\nID anonimizado: '+d.id+'\nEdad: '+d.edad+' anios | Sexo: '+d.sexo+'\nEmbarazo/lactancia: '+d.embarazo+'\n\nALERGIAS:\n- Farmacos: '+(d.alergiasFarmacos||'Ninguna conocida')+'\n- Excipientes de vacunas: '+(d.alergExcipientes.length?d.alergExcipientes.join(', '):'Ninguno conocido')+'\n- Otras: '+(d.otrasAlergias||'Ninguna')+'\n\nANTECEDENTES:\n'+(d.ap.length?d.ap.map(function(a){return '- '+a;}).join('\n'):'- Sin patologias relevantes')+(d.otrosAP?'\n- '+d.otrosAP:'')+'\n\nTRATAMIENTO:\n- Inmunosupresores: '+d.inmunosupresor+'\n- Medicacion relevante: '+(d.medicacion||'Ninguna')+'\n\nCALENDARIO VACUNAL INFANTIL: '+d.calendarioVacunal+(d.calendarioNotas?'\n  Notas: '+d.calendarioNotas:'')+'\n\n===========================================\nDATOS DEL VIAJE'+diasStr+'\n===========================================\nDestinos: '+(d.destinos.join(' / ')||'No especificado')+'\nFecha salida: '+(d.fechaSalida||'No especificada')+'\nDuracion: '+(d.duracion?d.duracion+' dias':'No especificada')+'\nTipo de viaje: '+(d.tipoViaje.join(', ')||'No especificado')+'\nAlojamiento: '+(d.alojamiento.join(', ')||'No especificado')+'\nAlimentacion: '+(d.alimentacion.join(', ')||'No especificado')+'\nActividades de riesgo:\n'+(d.actividades.length?d.actividades.map(function(a){return '- '+a;}).join('\n'):'- Ninguna especificada')+(d.otrasActividades?'\n- '+d.otrasActividades:'')+'\nConsulta previa del viajero: '+d.consultaPrevia+(d.notasConsultaPrevia?'\n  Notas: '+d.notasConsultaPrevia:'')+malariaSection+'\n\n===========================================\nVACUNACION PREVIA DEL VIAJERO\n===========================================\nVacunas documentadas: '+(d.vacunasViajero.length?d.vacunasViajero.join(', '):'Ninguna')+(d.notasVacunasPrevias?'\nNotas: '+d.notasVacunasPrevias:'')+'\nQuimioprofilaxis paludica previa: '+d.quimioPrevia+(d.quimioPreviaFarmaco?' ('+d.quimioPreviaFarmaco+')':'')+(d.quimioTolerancia?' - Tolerancia: '+d.quimioTolerancia:'')+(d.quimioEA?' - EA: '+d.quimioEA:'')+'\n\n===========================================\nSOLICITUD\n===========================================\nPor favor indica:\n1. VACUNAS RECOMENDADAS:\n   a) Obligatorias (certificado internacional exigible)\n   b) Recomendadas segun destino y perfil\n   c) A considerar segun actividades/riesgo especifico\n   d) Contraindicadas o con precauciones en este paciente\n2. QUIMIOPROFILAXIS ANTIMALARIA (si aplica):\n   - Indicacion segun destino (ver info SEMTSI 2025 incluida arriba)\n   - Farmaco de eleccion y alternativas (considerando tolerancia previa)\n   - Posologia y duracion\n3. CONSIDERACIONES ESPECIALES dado el perfil clinico\n4. Priorizacion teniendo en cuenta los '+(d.diasHastaSalida!==null?d.diasHastaSalida+' dias disponibles':'dias disponibles')+' hasta la salida';
 
+  document.getElementById('promptTitle').textContent='Prompt para Claude — '+d.id;
   document.getElementById('promptText').textContent=prompt;
   document.getElementById('promptSection').classList.remove('hidden');
   document.getElementById('promptSection').scrollIntoView({behavior:'smooth'});
@@ -1435,16 +1476,15 @@ ${bodyParts}
 // SAVE / DB
 // ══════════════════════════════════════════
 function saveCase(){
-  const d=collectData();
-  if(!d.iniciales||!d.fechaNac||!d.sexo){alert('Completa al menos las iniciales, fecha de nacimiento y sexo.');return;}
-  const db=getDB();const baseId=d.id;
-  const existing=db.filter(c=>c.id===baseId||c.id.startsWith(baseId+'-v'));
-  if(existing.length>0){
-    if(!confirm('Ya existe un caso con ID "'+baseId+'" (posible visita repetida). Guardar como nueva visita?'))return;
-    d.id=baseId+'-v'+(existing.length+1);
-    document.getElementById('caseIDDisplay').textContent=d.id;
-  }
-  db.push(d);saveDB(db);updateHeaderCount();showToast('Caso guardado');
+  snapshotActive();propagateTrip();
+  const m=activeMember();
+  const r=saveMember(m);
+  if(r==='incompleto'){alert('Completa al menos las iniciales, fecha de nacimiento y sexo.');return;}
+  if(r==='cancelado')return;
+  linkGroupInDB();
+  document.getElementById('caseIDDisplay').textContent=m.data.id;
+  updateHeaderCount();afterSessionChange();
+  showToast(r==='actualizado'?'Caso actualizado':'Caso guardado');
 }
 function getDB(){try{return JSON.parse(localStorage.getItem('consultaViajero_db')||'[]');}catch{return[];}}
 function saveDB(db){localStorage.setItem('consultaViajero_db',JSON.stringify(db));}
@@ -1454,23 +1494,34 @@ function updateHeaderCount(){
 }
 function loadDB(){
   const db=getDB();const tbody=document.getElementById('dbTableBody');const empty=document.getElementById('dbEmpty');
-  document.getElementById('dbStats').textContent=db.length+' casos | '+new Set(db.map(c=>c.id.split('-v')[0])).size+' pacientes unicos';
-  if(!db.length){tbody.innerHTML='';empty.style.display='block';return;}
+  const q=(document.getElementById('dbSearch')||{}).value||'';
+  const list=sortedDB(db).filter(c=>dbMatches(c,q));
+  document.getElementById('dbStats').textContent=(q?list.length+' de ':'')+db.length+' casos | '+new Set(db.map(c=>c.id.split('-v')[0])).size+' pacientes unicos';
+  if(!list.length){
+    tbody.innerHTML='';
+    empty.textContent=db.length?'Ningún caso coincide con la búsqueda.':'No hay casos guardados todavia.';
+    empty.style.display='block';return;
+  }
   empty.style.display='none';
-  tbody.innerHTML=db.map((c,i)=>{
+  const grp={};db.forEach(c=>{if(c.grupoId)grp[c.grupoId]=(grp[c.grupoId]||0)+1;});
+  tbody.innerHTML=list.map(c=>{
     let ds=c.diasHastaSalida!=null?(c.diasHastaSalida>=0?c.diasHastaSalida+'d':'pasado'):'—';
     const tv=Array.isArray(c.tipoViaje)?c.tipoViaje.join(', '):c.tipoViaje||'—';
-    return `<tr><td><strong>${c.id}</strong></td><td>${c.fechaConsulta}</td><td>${c.edad}a/${c.sexo}</td><td>${c.destinos?c.destinos.join(', '):'—'}</td><td><span class="badge">${tv}</span></td><td>${ds}</td><td>${c.inmunosupresor&&c.inmunosupresor!=='No'?'<span style="color:var(--danger)">SI</span>':'No'}</td><td><button class="btn btn-danger btn-sm" onclick="deleteCase(${i})">Elim.</button></td></tr>`;
+    const gb=c.grupoId&&grp[c.grupoId]>1?` <span class="badge" title="Viaja en grupo">👥 ${grp[c.grupoId]}</span>`:'';
+    return `<tr><td><strong style="cursor:pointer;text-decoration:underline dotted;white-space:nowrap" onclick="openRecord('${c.uid}')">${escH(c.id)}</strong>${gb}</td><td>${escH(c.fechaConsulta)}</td><td>${escH(c.edad)}a/${escH(c.sexo)}</td><td>${c.destinos?escH(c.destinos.join(', ')):'—'}</td><td><span class="badge">${escH(tv)}</span></td><td>${ds}</td><td>${c.inmunosupresor&&c.inmunosupresor!=='No'?'<span style="color:var(--danger)">SI</span>':'No'}</td><td style="white-space:nowrap"><button class="btn btn-secondary btn-sm" onclick="openRecord('${c.uid}')">Abrir</button> <button class="btn btn-secondary btn-sm" title="Abrir sus datos como una visita nueva" onclick="openRecord('${c.uid}','visita')">+ Visita</button> <button class="btn btn-danger btn-sm" onclick="deleteCase('${c.uid}')">Elim.</button></td></tr>`;
   }).join('');
 }
-function deleteCase(idx){
+function deleteCase(uid){
   if(!confirm('Eliminar este caso?'))return;
-  const db=getDB();db.splice(idx,1);saveDB(db);loadDB();updateHeaderCount();
+  const db=getDB();const i=db.findIndex(c=>c.uid===uid);if(i<0)return;
+  db.splice(i,1);saveDB(db);
+  SESSION.members.forEach(m=>{if(m.uid===uid){m.uid=null;m.dirty=true;}});
+  loadDB();updateHeaderCount();afterSessionChange();
 }
 function exportCSV(){
   const db=getDB();if(!db.length){alert('No hay casos guardados.');return;}
-  const cols=['id','fechaConsulta','edad','sexo','embarazo','alergiasFarmacos','alergExcipientes','ap','inmunosupresor','medicacion','calendarioVacunal','destinos','fechaSalida','diasHastaSalida','duracion','tipoViaje','alojamiento','alimentacion','actividades','consultaPrevia','vacunasViajero','quimioPrevia','quimioPreviaFarmaco','quimioTolerancia','quimioEA','notasConsulta'];
-  const header=['ID','Fecha consulta','Edad','Sexo','Embarazo','Alergias farmacos','Excipientes','Antecedentes','Inmunosupresor','Medicacion','Calendario vacunal','Destinos','Fecha salida','Dias hasta salida','Duracion dias','Tipo viaje','Alojamiento','Alimentacion','Actividades riesgo','Consulta previa','Vacunas previas','Quimioprofilaxis previa','Farmaco quimio','Tolerancia quimio','EA quimio','Notas consulta'];
+  const cols=['id','grupoId','fechaConsulta','edad','sexo','embarazo','alergiasFarmacos','alergExcipientes','ap','inmunosupresor','medicacion','calendarioVacunal','destinos','fechaSalida','diasHastaSalida','duracion','tipoViaje','alojamiento','alimentacion','actividades','consultaPrevia','vacunasViajero','quimioPrevia','quimioPreviaFarmaco','quimioTolerancia','quimioEA','notasConsulta'];
+  const header=['ID','Grupo','Fecha consulta','Edad','Sexo','Embarazo','Alergias farmacos','Excipientes','Antecedentes','Inmunosupresor','Medicacion','Calendario vacunal','Destinos','Fecha salida','Dias hasta salida','Duracion dias','Tipo viaje','Alojamiento','Alimentacion','Actividades riesgo','Consulta previa','Vacunas previas','Quimioprofilaxis previa','Farmaco quimio','Tolerancia quimio','EA quimio','Notas consulta'];
   const rows=[header,...db.map(c=>cols.map(col=>{const v=c[col];return Array.isArray(v)?v.join('; '):(v||'');}))];
   const csv=rows.map(r=>r.map(cell=>'"'+String(cell).replace(/"/g,'""')+'"').join(',')).join('\n');
   const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
@@ -1490,11 +1541,21 @@ function confirmClearDB(){
 function closeModal(){document.getElementById('modalOverlay').classList.add('hidden');}
 
 function startNewCase(){
-  if(!confirm('Empezar un caso nuevo? Se borraran los datos del formulario actual.'))return;
-  document.querySelectorAll('input[type="text"],input[type="number"],input[type="date"],textarea').forEach(el=>{if(!el.readOnly)el.value='';});
-  document.querySelectorAll('input[type="hidden"]').forEach(el=>el.value='');
-  document.querySelectorAll('.radio-chip').forEach(el=>el.classList.remove('selected'));
-  document.querySelectorAll('.check-chip').forEach(el=>{el.classList.remove('selected');const cb=el.querySelector('input');if(cb)cb.checked=false;});
+  if(SESSION&&SESSION.members.some(m=>m.dirty)&&!confirm('Empezar una consulta nueva? Hay cambios sin guardar que se perderan.'))return;
+  resetSession();
+  showSection('paciente');
+}
+
+function clearForm(){
+  const F=FORM_SECTIONS.map(s=>'#sec-'+s).join(',');
+  document.querySelectorAll(F).forEach(sec=>{
+    sec.querySelectorAll('input[type="text"],input[type="number"],input[type="date"],textarea').forEach(el=>el.value='');
+    sec.querySelectorAll('input[type="hidden"]').forEach(el=>el.value='');
+    sec.querySelectorAll('select').forEach(el=>el.value='');
+    sec.querySelectorAll('.radio-chip').forEach(el=>el.classList.remove('selected'));
+    sec.querySelectorAll('.check-chip').forEach(el=>{el.classList.remove('selected');const cb=el.querySelector('input');if(cb)cb.checked=false;});
+  });
+  document.getElementById('embarazo').value='No aplica';
   document.getElementById('destinos').value='[]';
   document.getElementById('destinosList').innerHTML='';
   document.getElementById('vacunasAnyoContainer').innerHTML='';
@@ -1505,8 +1566,8 @@ function startNewCase(){
   document.getElementById('quimioToleranciaBox').classList.add('hidden');
   document.getElementById('otroViajeNotasBox').classList.add('hidden');
   document.getElementById('promptSection').classList.add('hidden');
-  document.getElementById('fechaConsultaInput').value=new Date().toISOString().split('T')[0];
-  showSection('paciente');
+  document.getElementById('fechaConsultaInput').value=todayISO();
+  toggleEmbarazo();
 }
 
 function wordOpenInTab(){
@@ -1529,10 +1590,487 @@ function showToast(msg){
   setTimeout(()=>t.style.display='none',2500);
 }
 
+// ══════════════════════════════════════════
+// UTILIDADES
+// ══════════════════════════════════════════
+const FORM_SECTIONS=['paciente','antecedentes','viaje','vacunas','resumen'];
+function escH(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function normTxt(s){return String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();}
+function newUid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
+function clone(o){return o===undefined?undefined:JSON.parse(JSON.stringify(o));}
+function arr(x){return Array.isArray(x)?x:[];}
+function todayISO(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function isoToES(iso){if(!iso)return '';const p=iso.split('-');return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:iso;}
+function diasHasta(fecha){if(!fecha)return null;const h=new Date();h.setHours(0,0,0,0);return Math.round((new Date(fecha)-h)/(1000*60*60*24));}
+
+// ══════════════════════════════════════════
+// VACUNAS: detalle estructurado
+// ══════════════════════════════════════════
+function vacEid(v){return 'anyo_'+v.replace(/[^a-zA-Z0-9]/g,'_');}
+function vacList(){return Array.from(document.querySelectorAll('#vacunasPreviasGroup input')).map(i=>i.value);}
+function createVacunaRow(v,anyo,notas){
+  const ctr=document.getElementById('vacunasAnyoContainer');
+  const eid=vacEid(v);
+  let row=document.getElementById(eid);
+  if(!row){
+    row=document.createElement('div');row.className='vacuna-row';row.id=eid;
+    const opts=ANYOS.map(y=>`<option value="${y}">${y}</option>`).join('');
+    row.innerHTML=`<span class="vr-label">${escH(v)}</span>
+      <select id="sel_${eid}"><option value="">Ano desconocido</option>${opts}</select>
+      <input type="text" id="notas_${eid}" placeholder="Pauta / notas">`;
+    ctr.appendChild(row);
+  }
+  if(anyo!=null)document.getElementById('sel_'+eid).value=anyo;
+  if(notas!=null)document.getElementById('notas_'+eid).value=notas;
+  return row;
+}
+function getVacunasDetalle(){
+  return getChecked('vacunasPreviasGroup').map(v=>{
+    const eid=vacEid(v);
+    const s=document.getElementById('sel_'+eid),n=document.getElementById('notas_'+eid);
+    return {v,anyo:s?s.value:'',notas:n?n.value:''};
+  });
+}
+// Casos antiguos solo guardaban texto tipo "Hepatitis A (2015) [2 dosis]"
+function parseVacunasLegacy(list){
+  return arr(list).map(s=>{const m=String(s).match(/^(.*?)(?: \((\d{4})\))?(?: \[(.*)\])?$/);return {v:m?m[1]:String(s),anyo:(m&&m[2])||'',notas:(m&&m[3])||''};});
+}
+function getDetalle(d){return Array.isArray(d.vacunasDetalle)?d.vacunasDetalle:parseVacunasLegacy(d.vacunasViajero);}
+function fmtVacunas(det){return arr(det).map(x=>x.v+(x.anyo?' ('+x.anyo+')':'')+(x.notas?' ['+x.notas+']':''));}
+
+// ══════════════════════════════════════════
+// RESTAURAR UN CASO EN EL FORMULARIO
+// ══════════════════════════════════════════
+function setVal(id,v){const e=document.getElementById(id);if(e)e.value=(v==null?'':v);}
+function setRadio(fieldId,groupId,val){
+  const h=document.getElementById(fieldId);if(h)h.value=val||'';
+  document.querySelectorAll('#'+groupId+' .radio-chip').forEach(c=>{
+    const m=(c.getAttribute('onclick')||'').match(/selectRadio\('[^']*','([^']*)'/);
+    c.classList.toggle('selected',!!val&&!!m&&m[1]===val);
+  });
+}
+function setChecks(groupId,vals){
+  vals=arr(vals);
+  document.querySelectorAll('#'+groupId+' .check-chip').forEach(ch=>{
+    const cb=ch.querySelector('input');const on=vals.includes(cb.value);
+    cb.checked=on;ch.classList.toggle('selected',on);
+  });
+}
+function applyFormState(d){
+  d=d||{};
+  clearForm();
+  // Paciente
+  setVal('iniciales',d.iniciales);setVal('fechaNac',d.fechaNac);
+  setRadio('sexo','sexoGroup',d.sexo);
+  if(d.fechaNac)calcularEdad();else setVal('edad','');
+  toggleEmbarazo();
+  const emb=d.embarazo&&d.embarazo!=='No aplica'?d.embarazo:'';
+  if(emb)setRadio('embarazo','embarazoGroup',emb);
+  if(d.iniciales||d.fechaNac||d.sexo)updateID();
+  // Antecedentes
+  setVal('alergiasFarmacos',d.alergiasFarmacos);setChecks('alergExcipientesGroup',d.alergExcipientes);
+  setVal('otrasAlergias',d.otrasAlergias);setChecks('apGroup',d.ap);setVal('otrosAP',d.otrosAP);
+  setRadio('inmunosupresor','inmunoGroup',d.inmunosupresor);setVal('medicacion',d.medicacion);
+  setRadio('calendarioVacunal','calendarioGroup',d.calendarioVacunal==='No especificado'?'':d.calendarioVacunal);
+  setVal('calendarioNotas',d.calendarioNotas);
+  // Viaje
+  const dest=arr(d.destinos);
+  setVal('destinos',JSON.stringify(dest));renderDestinos(dest);
+  setVal('fechaConsultaInput',d.fechaConsultaISO||todayISO());
+  setVal('fechaSalida',d.fechaSalida);calcularDias();
+  setVal('duracion',d.duracion);
+  let tv=d.tipoViajeRaw,otro=d.otroViajeNotas||'';
+  if(!Array.isArray(tv))tv=arr(d.tipoViaje).map(t=>{if(String(t).startsWith('Otro: ')){otro=t.slice(6);return 'Otro';}return t;});
+  setChecks('tipoViajeGroup',tv);setVal('otroViajeNotas',otro);
+  document.getElementById('otroViajeNotasBox').classList.toggle('hidden',!tv.includes('Otro'));
+  setChecks('alojamientoGroup',d.alojamiento);setChecks('alimentacionGroup',d.alimentacion);
+  setChecks('actividadesGroup',d.actividades);setVal('otrasActividades',d.otrasActividades);
+  setRadio('consultaPrevia','consultaPreviaGroup',d.consultaPrevia);setVal('notasConsultaPrevia',d.notasConsultaPrevia);
+  // Vacunas
+  const det=getDetalle(d);
+  setChecks('vacunasPreviasGroup',det.map(x=>x.v));
+  const known=vacList();
+  det.forEach(x=>{if(known.includes(x.v))createVacunaRow(x.v,x.anyo,x.notas);});
+  setVal('notasVacunasPrevias',d.notasVacunasPrevias);
+  setRadio('quimioPrevia','quimioPreviaGroup',d.quimioPrevia);toggleQuimioDetalle();
+  setVal('quimioPreviaFarmaco',d.quimioPreviaFarmaco);
+  setRadio('quimioTolerancia','quimioToleranciaGroup',d.quimioTolerancia);setVal('quimioEA',d.quimioEA);
+  // Resumen
+  setVal('notasConsulta',d.notasConsulta);
+  updateVacunasVivasInForm();
+  // Mantener sufijo de visita (-v2…) si el ID corresponde al paciente
+  const disp=document.getElementById('caseIDDisplay');
+  if(d.id&&d.id.split('-v')[0]===disp.textContent)disp.textContent=d.id;
+}
+
+// ══════════════════════════════════════════
+// CONSULTA EN CURSO (uno o varios viajeros)
+// ══════════════════════════════════════════
+// Campos del viaje que se comparten en un grupo (Consultas previas es individual)
+const TRIP_KEYS=['destinos','fechaConsultaISO','fechaConsulta','fechaSalida','diasHastaSalida','duracion','tipoViaje','tipoViajeRaw','otroViajeNotas','alojamiento','alimentacion','actividades','otrasActividades'];
+const TRIP_CMP=['destinos','fechaSalida','duracion','tipoViaje','alojamiento','alimentacion','actividades','otrasActividades'];
+let SESSION=null;
+function blankMember(){return {tmpId:newUid(),uid:null,dirty:false,data:{destinos:[],fechaConsultaISO:todayISO()}};}
+function activeMember(){return SESSION.members[SESSION.active];}
+function memberLabel(m,i){return (m.data&&m.data.iniciales)||'Viajero '+(i+1);}
+function snapshotActive(){if(SESSION)activeMember().data=collectData();}
+function resetSession(){
+  SESSION={members:[blankMember()],active:0,grupoId:null,sharedTrip:true};
+  clearForm();afterSessionChange();
+}
+function tripSig(d){return JSON.stringify(TRIP_CMP.map(k=>{const v=d[k];return (v==null||v===''||(Array.isArray(v)&&!v.length))?'':v;}));}
+function tripsEqual(datas){return datas.every(d=>tripSig(d)===tripSig(datas[0]));}
+function propagateTrip(){
+  if(!SESSION.sharedTrip||SESSION.members.length<2)return;
+  const src=activeMember().data;
+  SESSION.members.forEach((m,i)=>{
+    if(i===SESSION.active)return;
+    const before=tripSig(m.data);
+    TRIP_KEYS.forEach(k=>{m.data[k]=src[k]===undefined?null:clone(src[k]);});
+    if(tripSig(m.data)!==before)m.dirty=true;
+  });
+}
+function switchMember(i){
+  if(!SESSION||i===SESSION.active||!SESSION.members[i])return;
+  snapshotActive();propagateTrip();
+  SESSION.active=i;
+  applyFormState(activeMember().data);
+  afterSessionChange();refreshCurrentSection();
+}
+function addMember(){
+  snapshotActive();propagateTrip();
+  const src=activeMember().data;
+  const m=blankMember();
+  TRIP_KEYS.forEach(k=>{if(src[k]!==undefined)m.data[k]=clone(src[k]);});
+  if(!SESSION.grupoId)SESSION.grupoId='g'+newUid();
+  SESSION.members.push(m);
+  SESSION.active=SESSION.members.length-1;
+  applyFormState(m.data);
+  afterSessionChange();
+  showSection('paciente');
+  document.getElementById('iniciales').focus();
+  showToast('Viajero añadido — viaje copiado del grupo');
+}
+function removeMember(i){
+  const m=SESSION.members[i];
+  if(SESSION.members.length===1){startNewCase();return;}
+  if(m.dirty&&!confirm('Quitar a '+memberLabel(m,i)+' de la consulta? Tiene cambios sin guardar.'))return;
+  snapshotActive();
+  SESSION.members.splice(i,1);
+  if(i<SESSION.active)SESSION.active--;
+  else if(i===SESSION.active){SESSION.active=Math.min(i,SESSION.members.length-1);applyFormState(activeMember().data);refreshCurrentSection();}
+  afterSessionChange();
+}
+function toggleSharedTrip(on){
+  snapshotActive();
+  if(on&&!tripsEqual(SESSION.members.map(m=>m.data))){
+    if(!confirm('Los viajes de los miembros son distintos. Se copiará el viaje de '+memberLabel(activeMember(),SESSION.active)+' a todo el grupo. ¿Continuar?')){renderTabs();return;}
+  }
+  SESSION.sharedTrip=on;
+  if(on){propagateTrip();showToast('Viaje común aplicado a todo el grupo');}
+  afterSessionChange();refreshCurrentSection();
+}
+function afterSessionChange(){renderTabs();renderRecent();updateSaveButtons();persistSession();}
+function refreshCurrentSection(){
+  const s=document.querySelector('.tab-content.active');if(!s)return;
+  const name=s.id.replace('sec-','');
+  if(name==='resumen')buildSummary();
+  onSectionShown(name);
+}
+function onSectionShown(name){
+  if(!SESSION)return;
+  if(name==='viaje')renderViajeBanner();
+  if(name==='vacunas')renderMatrix();
+  if(name==='resumen')updateSaveButtons();
+}
+function updateSaveButtons(){
+  if(!SESSION)return;
+  const n=SESSION.members.length,m=activeMember();
+  const b=document.getElementById('btnSave');
+  b.textContent=m.uid?'Actualizar caso guardado':(n>1?'Guardar este viajero':'Guardar en base de datos');
+  document.getElementById('btnSaveGroup').classList.toggle('hidden',n<2);
+  document.getElementById('btnGroupPrompt').classList.toggle('hidden',n<2);
+}
+function renderTabs(){
+  const bar=document.getElementById('groupBar');if(!bar||!SESSION)return;
+  const n=SESSION.members.length;
+  let h=`<span class="gb-label">${n>1?'Grupo · '+n+' viajeros':'En consulta'}</span>`;
+  SESSION.members.forEach((m,i)=>{
+    const act=i===SESSION.active;
+    const ini=act?document.getElementById('iniciales').value:m.data.iniciales;
+    const edad=act?document.getElementById('edad').value:m.data.edad;
+    const sexo=act?document.getElementById('sexo').value:m.data.sexo;
+    const meta=[edad!==''&&edad!=null?edad+'a':'',sexo||''].filter(Boolean).join(' ');
+    const status=m.dirty?'<span class="pt-dot" title="Cambios sin guardar"></span>':(m.uid?'<span class="pt-saved" title="Guardado">✓</span>':'');
+    h+=`<div class="ptab${act?' active':''}" onclick="switchMember(${i})"><span>${escH(ini||'Viajero '+(i+1))}</span>${meta?`<small>${escH(meta)}</small>`:''}${status}<button class="pt-x" title="Quitar de la consulta" onclick="event.stopPropagation();removeMember(${i})">✕</button></div>`;
+  });
+  h+=`<button class="btn btn-secondary btn-sm" onclick="addMember()">+ Añadir viajero al grupo</button>`;
+  if(n>1){
+    h+=`<span class="gb-spacer"></span><label class="gb-toggle" title="Destinos, fechas, tipo de viaje, alojamiento, alimentación y actividades comunes a todos"><input type="checkbox" ${SESSION.sharedTrip?'checked':''} onchange="toggleSharedTrip(this.checked)"> Viaje compartido</label><button class="btn btn-accent btn-sm" onclick="saveGroup()">Guardar grupo</button>`;
+  }
+  bar.innerHTML=h;
+}
+function renderViajeBanner(){
+  const el=document.getElementById('viajeSharedBanner');if(!el)return;
+  const n=SESSION.members.length;
+  if(n<2){el.innerHTML='';return;}
+  const names=SESSION.members.map((m,i)=>escH(i===SESSION.active?(document.getElementById('iniciales').value||memberLabel(m,i)):memberLabel(m,i))).join(', ');
+  el.innerHTML=SESSION.sharedTrip
+    ?`<div class="shared-banner">👥 <strong>Viaje compartido por los ${n} viajeros</strong> (${names}). Lo que rellenes aquí se aplica a todo el grupo, salvo «Consultas previas del viajero», que es individual. Si alguien hace actividades distintas, desactiva «Viaje compartido» arriba.</div>`
+    :`<div class="shared-banner off">Viaje individual: estás editando solo el viaje de <strong>${escH(document.getElementById('iniciales').value||memberLabel(activeMember(),SESSION.active))}</strong>.</div>`;
+}
+
+// ── Guardado ──
+function saveMember(m){
+  const d=m.data;
+  if(!d.iniciales||!d.fechaNac||!d.sexo)return 'incompleto';
+  const db=getDB();const now=new Date().toISOString();
+  const grupoId=SESSION.members.length>1?SESSION.grupoId:null;
+  if(m.uid){
+    const i=db.findIndex(c=>c.uid===m.uid);
+    if(i>=0){
+      const rec=clone(d);rec.uid=m.uid;rec.grupoId=grupoId||db[i].grupoId||null;
+      rec.creado=db[i].creado||db[i].fechaConsultaISO;rec.actualizado=now;
+      db[i]=rec;saveDB(db);m.dirty=false;return 'actualizado';
+    }
+    m.uid=null;
+  }
+  const baseId=d.id.split('-v')[0];
+  const existing=db.filter(c=>c.id===baseId||c.id.startsWith(baseId+'-v'));
+  let id=baseId;
+  if(existing.length>0){
+    if(!confirm('Ya existe un caso con ID "'+baseId+'" (posible visita repetida). ¿Guardar como nueva visita?'))return 'cancelado';
+    id=baseId+'-v'+(existing.length+1);
+  }
+  const rec=clone(d);rec.id=id;rec.uid=newUid();rec.grupoId=grupoId;rec.creado=now;rec.actualizado=now;
+  db.push(rec);saveDB(db);
+  m.uid=rec.uid;m.data.id=id;m.dirty=false;
+  return 'nuevo';
+}
+function linkGroupInDB(){
+  if(SESSION.members.length<2)return;
+  const db=getDB();let ch=false;
+  SESSION.members.forEach(m=>{if(!m.uid)return;const r=db.find(c=>c.uid===m.uid);if(r&&r.grupoId!==SESSION.grupoId){r.grupoId=SESSION.grupoId;ch=true;}});
+  if(ch)saveDB(db);
+}
+function saveGroup(){
+  snapshotActive();propagateTrip();
+  let ok=0;const incompletos=[];
+  SESSION.members.forEach((m,i)=>{
+    if(m.uid&&!m.dirty)return;
+    const r=saveMember(m);
+    if(r==='incompleto')incompletos.push(memberLabel(m,i));
+    else if(r!=='cancelado')ok++;
+  });
+  linkGroupInDB();
+  const am=activeMember();if(am.uid)document.getElementById('caseIDDisplay').textContent=am.data.id;
+  updateHeaderCount();afterSessionChange();
+  if(incompletos.length)alert('Guardados: '+ok+'. Sin guardar por faltar iniciales, fecha de nacimiento o sexo: '+incompletos.join(', '));
+  else showToast(ok?'Grupo guardado ('+ok+')':'No había cambios que guardar');
+}
+
+// ── Abrir casos guardados ──
+function openRecord(uid,mode){
+  const idx=SESSION.members.findIndex(m=>m.uid===uid);
+  if(idx>=0&&mode!=='visita'){switchMember(idx);return;}
+  if(SESSION.members.some(m=>m.dirty)&&!confirm('Hay cambios sin guardar en la consulta actual. ¿Descartarlos y abrir otro paciente?'))return;
+  const db=getDB();const rec=db.find(c=>c.uid===uid);if(!rec)return;
+  if(mode==='visita'){
+    const d=clone(rec);delete d.uid;delete d.grupoId;
+    d.id=rec.id.split('-v')[0];d.notasConsulta='';
+    d.fechaConsultaISO=todayISO();d.fechaConsulta=isoToES(d.fechaConsultaISO);
+    SESSION={members:[{tmpId:newUid(),uid:null,dirty:true,data:d}],active:0,grupoId:null,sharedTrip:true};
+    applyFormState(d);afterSessionChange();showSection('paciente');
+    showToast('Nueva visita de '+d.id+' — revisa viaje y fechas');return;
+  }
+  const recs=rec.grupoId?db.filter(c=>c.grupoId===rec.grupoId):[rec];
+  SESSION={members:recs.map(r=>({tmpId:newUid(),uid:r.uid,dirty:false,data:clone(r)})),active:Math.max(0,recs.indexOf(rec)),grupoId:rec.grupoId||null,sharedTrip:recs.length>1?tripsEqual(recs):true};
+  applyFormState(activeMember().data);
+  afterSessionChange();showSection('resumen');
+  if(recs.length>1)showToast('Grupo de '+recs.length+' viajeros abierto');
+}
+
+// ── Búsqueda y recientes ──
+function dbMatches(c,q){
+  const toks=normTxt(q).split(/\s+/).filter(Boolean);if(!toks.length)return true;
+  const hay=normTxt([c.id,c.iniciales,c.fechaNac,isoToES(c.fechaNac),arr(c.destinos).join(' '),c.fechaConsulta,c.fechaConsultaISO,arr(c.tipoViaje).join(' '),c.notasConsulta].join(' | '));
+  return toks.every(t=>hay.includes(t));
+}
+function sortedDB(db){
+  return db.map((c,i)=>({c,i})).sort((a,b)=>{
+    const ka=a.c.actualizado||a.c.fechaConsultaISO||'',kb=b.c.actualizado||b.c.fechaConsultaISO||'';
+    return kb.localeCompare(ka)||b.i-a.i;
+  }).map(x=>x.c);
+}
+function renderRecent(){
+  const el=document.getElementById('recentList');if(!el)return;
+  const q=document.getElementById('sideSearch').value.trim();
+  const db=sortedDB(getDB());
+  const list=q?db.filter(c=>dbMatches(c,q)).slice(0,25):db.slice(0,8);
+  const inSess=new Set(SESSION?SESSION.members.map(m=>m.uid).filter(Boolean):[]);
+  if(!list.length){el.innerHTML=`<div class="recent-empty">${q?'Sin resultados':'Aún no hay casos guardados'}</div>`;return;}
+  el.innerHTML=(q?'':'<div class="recent-empty">Recientes</div>')+list.map(c=>{
+    const dest=arr(c.destinos).map(x=>x.split(' - ')[0]).join(', ');
+    return `<div class="recent-item${inSess.has(c.uid)?' in-session':''}" onclick="openRecord('${c.uid}')" title="${escH(c.id)}${dest?' — '+escH(dest):''}"><div class="ri-id">${c.grupoId?'👥 ':''}${escH(c.id)}</div><div class="ri-meta">${escH(c.fechaConsulta||'')}${dest?' · '+escH(dest):''}</div></div>`;
+  }).join('');
+}
+
+// ── Matriz de vacunas del grupo ──
+function renderMatrix(){
+  const el=document.getElementById('groupVacMatrix');if(!el||!SESSION)return;
+  const n=SESSION.members.length;
+  if(n<2){el.innerHTML='';return;}
+  snapshotActive();
+  const vacs=vacList();
+  const dets=SESSION.members.map(m=>getDetalle(m.data));
+  const yearOpts=sel=>'<option value="">Año?</option>'+ANYOS.map(y=>`<option value="${y}"${String(y)===String(sel)?' selected':''}>${y}</option>`).join('');
+  const head='<tr><th>Vacuna</th>'+SESSION.members.map((m,i)=>`<th class="mx-p${i===SESSION.active?' mx-active':''}">${escH(memberLabel(m,i))}</th>`).join('')+'</tr>';
+  const rows=vacs.map((v,vi)=>'<tr><td>'+escH(v)+'</td>'+dets.map((det,i)=>{
+    const x=det.find(y=>y.v===v);
+    return `<td class="mx-c"><input type="checkbox" ${x?'checked':''} onchange="mxSet(${i},${vi},this.checked)">${x?`<select onchange="mxYear(${i},${vi},this.value)">${yearOpts(x.anyo)}</select>`:''}</td>`;
+  }).join('')+'</tr>').join('');
+  const qRow='<tr class="mx-sep"><td>Quimioprofilaxis previa</td>'+SESSION.members.map((m,i)=>{
+    const v=m.data.quimioPrevia||'No';
+    return `<td class="mx-c"><select onchange="mxQuimio(${i},this.value)"><option${v==='No'?' selected':''}>No</option><option${v==='Si'?' selected':''}>Si</option></select></td>`;
+  }).join('')+'</tr>';
+  el.innerHTML=`<div class="card"><div class="card-title">👥 Vista de grupo — marca para cada viajero</div>
+    <p style="font-size:12px;color:var(--text-muted);margin:-6px 0 12px">Pauta/notas de cada vacuna, fármaco y tolerancia de la quimioprofilaxis se completan en la ficha individual de abajo (viajero activo: <strong>${escH(memberLabel(activeMember(),SESSION.active))}</strong>).</p>
+    <div class="db-table-wrap"><table class="mx">${head}${rows}${qRow}</table></div></div>`;
+}
+function mxEdit(i,fn){
+  snapshotActive();
+  const m=SESSION.members[i];
+  fn(m.data);
+  m.dirty=true;
+  if(i===SESSION.active)applyFormState(m.data);
+  renderMatrix();renderTabs();persistSession();
+}
+function mxSet(i,vi,on){
+  const v=vacList()[vi];
+  mxEdit(i,d=>{
+    const order=vacList();
+    let det=getDetalle(d).filter(x=>x.v!==v);
+    if(on){det.push({v,anyo:'',notas:''});det.sort((a,b)=>order.indexOf(a.v)-order.indexOf(b.v));}
+    d.vacunasDetalle=det;d.vacunasViajero=fmtVacunas(det);
+  });
+}
+function mxYear(i,vi,val){
+  const v=vacList()[vi];
+  mxEdit(i,d=>{const det=getDetalle(d);const x=det.find(y=>y.v===v);if(x)x.anyo=val;d.vacunasDetalle=det;d.vacunasViajero=fmtVacunas(det);});
+}
+function mxQuimio(i,val){mxEdit(i,d=>{d.quimioPrevia=val;});}
+
+// ── Prompt de grupo ──
+function malariaTextFor(destinos){
+  const seen=new Set();const lines=[];
+  arr(destinos).forEach(dest=>{
+    const w=getMalariaWarning(dest);
+    if(!w||seen.has(w.key))return;
+    seen.add(w.key);
+    const data=w.data;
+    lines.push('  '+dest.split(' - ')[0]+':');
+    if(data.especies)lines.push('    Especies: '+data.especies);
+    if(data.lluvia)lines.push('    Temporada lluvia: '+data.lluvia);
+    (data.zonas||[]).forEach(z=>{const rc=RISK_CONFIG[z.nivel]||RISK_CONFIG['libre'];lines.push('    ['+rc.label+'] '+z.desc+' -> '+z.rec);});
+    if(data.nota)lines.push('    NOTA: '+data.nota);
+  });
+  return lines.length?'\n\n===========================================\nINFO MALARIA POR DESTINO (SEMTSI 2025)\n===========================================\n'+lines.join('\n'):'';
+}
+function tripText(d){
+  const dh=diasHasta(d.fechaSalida);
+  return 'Destinos: '+(arr(d.destinos).join(' / ')||'No especificado')+
+    '\nFecha salida: '+(d.fechaSalida||'No especificada')+(dh!==null?' ('+dh+' dias desde hoy)':'')+
+    '\nDuracion: '+(d.duracion?d.duracion+' dias':'No especificada')+
+    '\nTipo de viaje: '+(arr(d.tipoViaje).join(', ')||'No especificado')+
+    '\nAlojamiento: '+(arr(d.alojamiento).join(', ')||'No especificado')+
+    '\nAlimentacion: '+(arr(d.alimentacion).join(', ')||'No especificado')+
+    '\nActividades de riesgo: '+(arr(d.actividades).concat(d.otrasActividades?[d.otrasActividades]:[]).join(', ')||'Ninguna especificada');
+}
+function travellerText(d,n,withTrip){
+  const L=[];
+  L.push('--- VIAJERO '+n+': '+d.id+' ---');
+  L.push('Edad: '+(d.edad||'?')+' anios | Sexo: '+(d.sexo||'?')+' | Embarazo/lactancia: '+(d.embarazo||'No aplica'));
+  L.push('Alergias: farmacos '+(d.alergiasFarmacos||'ninguna conocida')+'; excipientes '+(arr(d.alergExcipientes).join(', ')||'ninguno conocido')+(d.otrasAlergias?'; otras '+d.otrasAlergias:''));
+  L.push('Antecedentes: '+(arr(d.ap).join(', ')||'sin patologias relevantes')+(d.otrosAP?'; '+d.otrosAP:''));
+  L.push('Inmunosupresores: '+(d.inmunosupresor||'No')+' | Medicacion: '+(d.medicacion||'ninguna'));
+  L.push('Calendario vacunal infantil: '+(d.calendarioVacunal||'No especificado')+(d.calendarioNotas?' ('+d.calendarioNotas+')':''));
+  L.push('Consulta previa del viajero: '+(d.consultaPrevia||'No')+(d.notasConsultaPrevia?' ('+d.notasConsultaPrevia+')':''));
+  L.push('Vacunas previas: '+(fmtVacunas(getDetalle(d)).join(', ')||'ninguna documentada')+(d.notasVacunasPrevias?' | Notas: '+d.notasVacunasPrevias:''));
+  L.push('Quimioprofilaxis previa: '+(d.quimioPrevia||'No')+(d.quimioPreviaFarmaco?' ('+d.quimioPreviaFarmaco+')':'')+(d.quimioTolerancia?' - '+d.quimioTolerancia:'')+(d.quimioEA?' - EA: '+d.quimioEA:''));
+  if(withTrip)L.push('VIAJE:\n'+tripText(d)+malariaTextFor(d.destinos));
+  return L.join('\n');
+}
+function generateGroupPrompt(){
+  snapshotActive();propagateTrip();
+  const ms=SESSION.members.map(m=>m.data);
+  const n=ms.length;
+  const shared=SESSION.sharedTrip||tripsEqual(ms);
+  const dh=shared?diasHasta(ms[0].fechaSalida):null;
+  let p='Eres un experto en medicina del viajero. Analiza los datos de un GRUPO de '+n+' viajeros que viajan juntos y proporciona recomendaciones de vacunacion y quimioprofilaxis antipaludica, basadas en las guias vigentes (MSC/CCAES, CDC Yellow Book, WHO International Travel and Health).';
+  if(shared){
+    p+='\n\n===========================================\nDATOS DEL VIAJE (COMUNES AL GRUPO)\n===========================================\n'+tripText(ms[0])+malariaTextFor(ms[0].destinos);
+  }
+  p+='\n\n===========================================\nDATOS INDIVIDUALES\n===========================================\n'+ms.map((d,i)=>travellerText(d,i+1,!shared)).join('\n\n');
+  p+='\n\n===========================================\nSOLICITUD\n===========================================\nPor favor indica:\n1. RECOMENDACIONES COMUNES AL GRUPO: vacunas obligatorias (certificado internacional exigible) y recomendadas segun destino, medidas antimosquito y, si aplica, indicacion de quimioprofilaxis (ver info SEMTSI 2025).\n2. PARA CADA VIAJERO:\n   a) Vacunas a administrar teniendo en cuenta las previas (incluidas dosis de recuerdo)\n   b) Contraindicaciones o precauciones por su perfil (embarazo, inmunosupresion, edad, alergias)\n   c) Quimioprofilaxis: farmaco de eleccion, alternativas, posologia y duracion, considerando su tolerancia previa\n3. TABLA RESUMEN: filas = viajeros, columnas = vacunas, indicando "ya protegido", "administrar", "valorar" o "contraindicada".\n4. Priorizacion teniendo en cuenta '+(dh!==null?'los '+dh+' dias disponibles':'los dias disponibles')+' hasta la salida.';
+  document.getElementById('promptTitle').textContent='Prompt de grupo para Claude — '+n+' viajeros';
+  document.getElementById('promptText').textContent=p;
+  document.getElementById('promptSection').classList.remove('hidden');
+  document.getElementById('promptSection').scrollIntoView({behavior:'smooth'});
+  persistSession();
+}
+
+// ── Persistencia de la consulta en curso y cambios sin guardar ──
+function persistSession(){
+  if(!SESSION)return;
+  try{snapshotActive();localStorage.setItem('consultaViajero_session',JSON.stringify(SESSION));}catch(e){}
+}
+let _dirtyT=null;
+function markDirty(e){
+  if(!SESSION)return;
+  const t=e.target;if(!t||!t.closest)return;
+  if(!t.closest(FORM_SECTIONS.map(s=>'#sec-'+s).join(',')))return;
+  if(t.closest('#groupVacMatrix,.action-bar,#promptSection'))return;
+  if(e.type==='click'&&!t.closest('.radio-chip,.check-chip,.destino-item button,#sec-viaje .btn-accent'))return;
+  activeMember().dirty=true;
+  clearTimeout(_dirtyT);
+  _dirtyT=setTimeout(()=>{renderTabs();persistSession();if(document.getElementById('sec-viaje').classList.contains('active'))renderViajeBanner();},250);
+}
+function migrateDB(){
+  const db=getDB();let ch=false;
+  db.forEach(c=>{if(!c.uid){c.uid=newUid()+Math.random().toString(36).slice(2,6);ch=true;}});
+  if(ch)saveDB(db);
+}
+function initSession(){
+  let s=null;
+  try{s=JSON.parse(localStorage.getItem('consultaViajero_session')||'null');}catch(e){}
+  if(s&&Array.isArray(s.members)&&s.members.length&&s.members.some(m=>m.dirty)){
+    SESSION=s;if(!(SESSION.active>=0&&SESSION.active<s.members.length))SESSION.active=0;
+    applyFormState(activeMember().data);
+    afterSessionChange();
+    showToast('Consulta en curso recuperada');
+  } else {
+    resetSession();
+  }
+}
+function installListeners(){
+  const main=document.querySelector('main');
+  ['input','change','click'].forEach(t=>main.addEventListener(t,markDirty));
+  const sv=document.getElementById('sec-vacunas');
+  ['change','click'].forEach(t=>sv.addEventListener(t,e=>{
+    if(!e.target.closest||e.target.closest('#groupVacMatrix'))return;
+    if(e.type==='click'&&!e.target.closest('.check-chip,.radio-chip'))return;
+    if(SESSION.members.length>1)setTimeout(renderMatrix,30);
+  }));
+  window.addEventListener('beforeunload',persistSession);
+}
+
 // INIT
 poblarPaises();
+migrateDB();
 updateHeaderCount();
-document.getElementById('fechaConsultaInput').value=new Date().toISOString().split('T')[0];
+document.getElementById('fechaConsultaInput').value=todayISO();
+initSession();
+installListeners();
 </script>
 </body>
 </html>

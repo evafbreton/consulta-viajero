@@ -18,6 +18,10 @@ Permite registrar de forma estructurada los datos de cada paciente que acude a c
 - **Prompt para Claude** generado automáticamente con todos los datos del caso, incluyendo la información de malaria de la guía SEMTSI, listo para obtener recomendaciones de vacunación y quimioprofilaxis
 - **Base de datos local** acumulativa (localStorage): los casos se guardan entre sesiones en el mismo navegador
 - **Exportación CSV** de todos los casos guardados para explotación posterior
+- **Búsqueda y pacientes recientes** en la barra lateral y en la base de datos (por ID, iniciales, fecha de nacimiento, destino o fecha)
+- **Abrir, editar y actualizar** casos guardados, y crear una **nueva visita** a partir de un caso previo
+- **Consultas de grupo**: pestañas por viajero, datos del viaje compartidos, tabla de vacunas previas viajero × vacuna, guardado del grupo completo y **prompt de grupo** para Claude
+- **Recuperación automática** de la consulta en curso si se recarga o cierra la página sin guardar
 
 ## Cómo usar
 
