@@ -14,6 +14,8 @@ Permite registrar de forma estructurada los datos de cada paciente que acude a c
 - **Guía de malaria SEMTSI 2025** integrada: consulta rápida por país con niveles de riesgo, especies de Plasmodium, temporada de lluvia y recomendaciones de quimioprofilaxis
 - **Alertas automáticas** al introducir destinos: nivel de riesgo de malaria por zonas geográficas
 - **Warnings clínicos** de vacunas vivas atenuadas (fiebre amarilla, tifoidea oral) en situaciones de riesgo: embarazo, posible embarazo, lactancia, inmunosupresión, antecedentes de inmunocompromiso y edad ≥65 años
+- **Texto para la historia clínica**: al guardar se genera un resumen en texto plano y se copia al portapapeles, listo para pegar en el campo de texto libre
+- **Autoguardado**: una vez guardado un caso, cualquier cambio posterior se guarda solo en la base de datos
 - **Informe Word** descargable con todos los datos de la consulta
 - **Prompt para Claude** generado automáticamente con todos los datos del caso, incluyendo la información de malaria de la guía SEMTSI, listo para obtener recomendaciones de vacunación y quimioprofilaxis
 - **Base de datos local** acumulativa (localStorage): los casos se guardan entre sesiones en el mismo navegador

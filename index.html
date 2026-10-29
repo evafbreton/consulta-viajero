@@ -456,9 +456,20 @@ table.mx tr.mx-sep td{border-top:2px solid var(--border)}
     <div style="flex:1"></div>
     <button class="btn btn-secondary" onclick="generatePrompt()">Generar prompt para Claude</button>
     <button class="btn btn-secondary hidden" id="btnGroupPrompt" onclick="generateGroupPrompt()">👥 Prompt de grupo</button>
-    <button class="btn btn-accent" id="btnSave" onclick="saveCase()">Guardar en base de datos</button>
+    <button class="btn btn-secondary" id="btnWord" onclick="generateWord()">Informe Word</button>
     <button class="btn btn-accent hidden" id="btnSaveGroup" onclick="saveGroup()">👥 Guardar grupo</button>
-    <button class="btn btn-primary" id="btnWord" onclick="generateWord()">Descargar informe Word</button>
+    <button class="btn btn-primary" id="btnSave" onclick="saveCase()">💾 Guardar y copiar para historia</button>
+  </div>
+  <div id="historiaSection" class="hidden" style="margin-top:20px">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+        <div class="card-title" id="historiaTitle" style="margin:0;border:none">Texto para la historia clínica</div>
+        <span id="autosaveStatus" style="font-size:12px;color:var(--text-muted);margin-left:auto"></span>
+        <button class="btn btn-accent btn-sm" onclick="copyHistoria()">📋 Copiar</button>
+      </div>
+      <textarea id="historiaText" readonly rows="16" style="font-family:'DM Sans',sans-serif;font-size:13px;line-height:1.55;background:#fbfaf7;resize:vertical"></textarea>
+      <p style="font-size:11px;color:var(--text-muted);margin-top:6px">Texto plano, sin formato, listo para pegar en el campo de texto libre. Se actualiza solo si cambias algo del caso.</p>
+    </div>
   </div>
   <div id="promptSection" class="hidden" style="margin-top:20px">
     <div class="card">
@@ -1483,8 +1494,9 @@ function saveCase(){
   if(r==='cancelado')return;
   linkGroupInDB();
   document.getElementById('caseIDDisplay').textContent=m.data.id;
-  updateHeaderCount();afterSessionChange();
-  showToast(r==='actualizado'?'Caso actualizado':'Caso guardado');
+  updateHeaderCount();afterSessionChange();updateSaveButtons();
+  const st=document.getElementById('autosaveStatus');if(st)st.textContent='✓ Guardado';
+  copyHistoria(true);
 }
 function getDB(){try{return JSON.parse(localStorage.getItem('consultaViajero_db')||'[]');}catch{return[];}}
 function saveDB(db){localStorage.setItem('consultaViajero_db',JSON.stringify(db));}
@@ -1781,13 +1793,15 @@ function onSectionShown(name){
   if(!SESSION)return;
   if(name==='viaje')renderViajeBanner();
   if(name==='vacunas')renderMatrix();
-  if(name==='resumen')updateSaveButtons();
+  if(name==='resumen'){updateSaveButtons();renderHistoria();}
 }
 function updateSaveButtons(){
   if(!SESSION)return;
   const n=SESSION.members.length,m=activeMember();
   const b=document.getElementById('btnSave');
-  b.textContent=m.uid?'Actualizar caso guardado':(n>1?'Guardar este viajero':'Guardar en base de datos');
+  b.textContent=m.uid?'📋 Copiar texto para historia':(n>1?'💾 Guardar este viajero y copiar':'💾 Guardar y copiar para historia');
+  b.title=m.uid?'El caso ya está guardado y se actualiza automáticamente':'';
+  renderHistoria();
   document.getElementById('btnSaveGroup').classList.toggle('hidden',n<2);
   document.getElementById('btnGroupPrompt').classList.toggle('hidden',n<2);
 }
@@ -1830,6 +1844,9 @@ function saveMember(m){
     const i=db.findIndex(c=>c.uid===m.uid);
     if(i>=0){
       const rec=clone(d);rec.uid=m.uid;rec.grupoId=grupoId||db[i].grupoId||null;
+      // Conservar sufijo de visita (-v2…) si sigue siendo el mismo paciente
+      if(String(rec.id).split('-v')[0]===String(db[i].id).split('-v')[0])rec.id=db[i].id;
+      m.data.id=rec.id;
       rec.creado=db[i].creado||db[i].fechaConsultaISO;rec.actualizado=now;
       db[i]=rec;saveDB(db);m.dirty=false;return 'actualizado';
     }
@@ -1866,7 +1883,10 @@ function saveGroup(){
   const am=activeMember();if(am.uid)document.getElementById('caseIDDisplay').textContent=am.data.id;
   updateHeaderCount();afterSessionChange();
   if(incompletos.length)alert('Guardados: '+ok+'. Sin guardar por faltar iniciales, fecha de nacimiento o sexo: '+incompletos.join(', '));
-  else showToast(ok?'Grupo guardado ('+ok+')':'No había cambios que guardar');
+  if(am.uid){
+    if(!document.getElementById('sec-resumen').classList.contains('active'))showSection('resumen');
+    copyHistoria(true);
+  } else if(!incompletos.length)showToast(ok?'Grupo guardado ('+ok+')':'No había cambios que guardar');
 }
 
 // ── Abrir casos guardados ──
@@ -1943,7 +1963,7 @@ function mxEdit(i,fn){
   fn(m.data);
   m.dirty=true;
   if(i===SESSION.active)applyFormState(m.data);
-  renderMatrix();renderTabs();persistSession();
+  renderMatrix();renderTabs();persistSession();scheduleAutosave();
 }
 function mxSet(i,vi,on){
   const v=vacList()[vi];
@@ -2034,6 +2054,152 @@ function markDirty(e){
   activeMember().dirty=true;
   clearTimeout(_dirtyT);
   _dirtyT=setTimeout(()=>{renderTabs();persistSession();if(document.getElementById('sec-viaje').classList.contains('active'))renderViajeBanner();},250);
+  scheduleAutosave();
+}
+
+// ══════════════════════════════════════════
+// AUTOGUARDADO (casos ya guardados una vez)
+// ══════════════════════════════════════════
+let _autoT=null;
+function scheduleAutosave(){
+  if(!SESSION||!SESSION.members.some(m=>m.uid))return;
+  const st=document.getElementById('autosaveStatus');if(st)st.textContent='Guardando…';
+  clearTimeout(_autoT);
+  _autoT=setTimeout(autosave,1200);
+}
+function autosave(){
+  if(!SESSION)return;
+  snapshotActive();propagateTrip();
+  const db=getDB();let n=0;
+  SESSION.members.forEach(m=>{
+    if(!m.uid||!m.dirty)return;
+    if(!db.some(c=>c.uid===m.uid)){m.uid=null;return;} // borrado de la BD: no recrear sin preguntar
+    const d=m.data;if(!d.iniciales||!d.fechaNac||!d.sexo)return;
+    if(saveMember(m)==='actualizado')n++;
+  });
+  const am=activeMember();if(am.uid&&am.data.id)document.getElementById('caseIDDisplay').textContent=am.data.id;
+  renderTabs();renderRecent();persistSession();updateSaveButtons();
+  const st=document.getElementById('autosaveStatus');
+  if(st)st.textContent=am.uid?(am.dirty?'Cambios sin guardar':'✓ Guardado automáticamente'):'';
+}
+
+// ══════════════════════════════════════════
+// TEXTO PLANO PARA LA HISTORIA CLÍNICA
+// ══════════════════════════════════════════
+const SEXO_TXT={H:'hombre',M:'mujer',O:'otro/NS'};
+function lc(s){return String(s||'').charAt(0).toLowerCase()+String(s||'').slice(1);}
+function malariaLineas(destinos){
+  const order=['alto','moderado','bajo','muybajo','eliminacion','certificado','libre'];
+  const seen=new Set();const out=[];
+  arr(destinos).forEach(dest=>{
+    const w=getMalariaWarning(dest);if(!w||seen.has(w.key))return;seen.add(w.key);
+    const zonas=w.data.zonas||[];if(!zonas.length)return;
+    const top=zonas.reduce((b,z)=>order.indexOf(z.nivel)<order.indexOf(b.nivel)?z:b,zonas[0]);
+    if(top.nivel==='libre'||top.nivel==='certificado')return;
+    const rc=RISK_CONFIG[top.nivel]||RISK_CONFIG.libre;
+    out.push('- '+dest.split(' - ')[0]+': '+rc.label.toLowerCase()+(zonas.length>1?' (máximo; varía por zonas)':'')+(top.rec?'. '+top.rec:''));
+  });
+  return out;
+}
+function alertasVivas(d){
+  const a=[];const edad=parseInt(d.edad)||0;
+  if(d.embarazo==='Embarazada confirmada')a.push('embarazo');
+  if(d.embarazo==='Posible')a.push('posible embarazo');
+  if(d.embarazo==='Lactancia')a.push('lactancia (valorar)');
+  if(d.inmunosupresor&&d.inmunosupresor!=='No')a.push('tratamiento inmunosupresor ('+lc(d.inmunosupresor)+')');
+  const apI=arr(d.ap).filter(x=>['Inmunodeficiencia primaria','VIH','Neoplasia activa','Trasplante'].includes(x));
+  if(apI.length)a.push(apI.join(', '));
+  if(edad>=65)a.push('edad ≥65 años (FA: riesgo de enfermedad viscerotrópica)');
+  return a;
+}
+function buildHistoriaText(d,companeros){
+  const L=[];
+  const fc=d.fechaConsultaISO?isoToES(d.fechaConsultaISO):(d.fechaConsulta||'');
+  L.push('CONSULTA DEL VIAJERO'+(fc?' - '+fc:''));
+  let pac=(d.edad?d.edad+' años':'Edad no consta')+(d.sexo?', '+(SEXO_TXT[d.sexo]||d.sexo):'');
+  if(d.embarazo&&!['No aplica','No / no aplica'].includes(d.embarazo))pac+='. '+d.embarazo;
+  L.push(pac+'.');
+  if(companeros&&companeros.length)L.push('Viaja en grupo con: '+companeros.join(', ')+'.');
+  L.push('');
+  // Viaje
+  L.push('VIAJE');
+  L.push('Destino: '+(arr(d.destinos).join('; ')||'no especificado')+'.');
+  const dh=diasHasta(d.fechaSalida);
+  const fechas=[];
+  if(d.fechaSalida)fechas.push('Salida '+isoToES(d.fechaSalida)+(dh!==null&&dh>=0?' ('+dh+' días)':''));
+  if(d.duracion)fechas.push('duración '+d.duracion+' días');
+  if(fechas.length)L.push(fechas.join(', ')+'.');
+  if(arr(d.tipoViaje).length)L.push('Motivo: '+arr(d.tipoViaje).map(lc).join(', ')+'.');
+  if(arr(d.alojamiento).length)L.push('Alojamiento: '+arr(d.alojamiento).map(lc).join(', ')+'.');
+  if(arr(d.alimentacion).length)L.push('Alimentación: '+arr(d.alimentacion).map(lc).join(', ')+'.');
+  const act=arr(d.actividades).map(lc).concat(d.otrasActividades?[d.otrasActividades]:[]);
+  L.push('Actividades/exposiciones de riesgo: '+(act.length?act.join(', '):'ninguna referida')+'.');
+  if(d.consultaPrevia==='Si')L.push('Consulta del viajero previa'+(d.notasConsultaPrevia?': '+d.notasConsultaPrevia:'')+'.');
+  L.push('');
+  // Antecedentes
+  L.push('ANTECEDENTES');
+  const alg=[];
+  if(d.alergiasFarmacos)alg.push(d.alergiasFarmacos);
+  if(arr(d.alergExcipientes).length)alg.push('excipientes: '+arr(d.alergExcipientes).map(lc).join(', '));
+  if(d.otrasAlergias)alg.push(d.otrasAlergias);
+  L.push('Alergias: '+(alg.length?alg.join('; '):'no conocidas')+'.');
+  const ap=arr(d.ap).concat(d.otrosAP?[d.otrosAP]:[]);
+  L.push('Patología de base: '+(ap.length?ap.join(', '):'sin interés')+'.');
+  const tto=[];
+  if(d.inmunosupresor&&d.inmunosupresor!=='No')tto.push('inmunosupresores ('+lc(d.inmunosupresor)+')');
+  if(d.medicacion)tto.push(d.medicacion);
+  L.push('Tratamiento habitual: '+(tto.length?tto.join('; '):'no relevante')+'.');
+  if(d.calendarioVacunal&&d.calendarioVacunal!=='No especificado')L.push('Calendario vacunal: '+lc(d.calendarioVacunal)+(d.calendarioNotas?' ('+d.calendarioNotas+')':'')+'.');
+  L.push('');
+  // Vacunas previas
+  L.push('VACUNACIÓN Y PROFILAXIS PREVIAS');
+  const vac=fmtVacunas(getDetalle(d));
+  L.push('Vacunas del viajero: '+(vac.length?vac.join('; '):'ninguna documentada')+'.');
+  if(d.notasVacunasPrevias)L.push('Notas: '+d.notasVacunasPrevias+'.');
+  if(d.quimioPrevia==='Si'){
+    const q=[d.quimioPreviaFarmaco,d.quimioTolerancia?lc(d.quimioTolerancia):'',d.quimioEA?'EA: '+d.quimioEA:''].filter(Boolean);
+    L.push('Quimioprofilaxis antipalúdica previa: sí'+(q.length?' ('+q.join(', ')+')':'')+'.');
+  } else L.push('Quimioprofilaxis antipalúdica previa: no.');
+  // Malaria y alertas
+  const mal=malariaLineas(d.destinos);
+  if(mal.length){L.push('');L.push('MALARIA (SEMTSI 2025)');mal.forEach(x=>L.push(x));}
+  const al=alertasVivas(d);
+  if(al.length){L.push('');L.push('PRECAUCIÓN VACUNAS ATENUADAS (FA, tifoidea oral): '+al.join('; ')+'.');}
+  // Recomendaciones
+  if(d.notasConsulta&&d.notasConsulta.trim()){L.push('');L.push('VALORACIÓN Y RECOMENDACIONES');L.push(d.notasConsulta.trim());}
+  return L.join('\n').replace(/\.\.(\s|$)/g,'.$1');
+}
+function companerosDe(i){
+  if(!SESSION||SESSION.members.length<2)return [];
+  return SESSION.members.filter((m,j)=>j!==i).map((m,j)=>{const d=m.data||{};return (d.iniciales||'otro viajero')+(d.edad?' ('+d.edad+' a)':'');});
+}
+function renderHistoria(){
+  const sec=document.getElementById('historiaSection');if(!sec||!SESSION)return;
+  const m=activeMember();
+  if(!m.uid){sec.classList.add('hidden');return;}
+  snapshotActive();
+  document.getElementById('historiaText').value=buildHistoriaText(m.data,companerosDe(SESSION.active));
+  document.getElementById('historiaTitle').textContent='Texto para la historia clínica — '+(m.data.id||'');
+  document.getElementById('autosaveStatus').textContent=m.dirty?'Guardando…':'✓ Guardado';
+  sec.classList.remove('hidden');
+}
+function copyText(txt){
+  if(navigator.clipboard&&window.isSecureContext)return navigator.clipboard.writeText(txt).then(()=>true).catch(()=>fallbackCopy(txt));
+  return Promise.resolve(fallbackCopy(txt));
+}
+function fallbackCopy(txt){
+  const ta=document.getElementById('historiaText');
+  const prev=ta.value;ta.value=txt;ta.removeAttribute('readonly');ta.select();
+  let ok=false;try{ok=document.execCommand('copy');}catch(e){}
+  ta.setAttribute('readonly','');ta.value=prev;window.getSelection&&window.getSelection().removeAllRanges();
+  return ok;
+}
+function copyHistoria(scroll){
+  renderHistoria();
+  const txt=document.getElementById('historiaText').value;
+  if(!txt)return;
+  copyText(txt).then(ok=>showToast(ok?'Texto copiado — pégalo en la historia':'No se pudo copiar automáticamente: selecciona el texto y copia'));
+  if(scroll)document.getElementById('historiaSection').scrollIntoView({behavior:'smooth',block:'start'});
 }
 function migrateDB(){
   const db=getDB();let ch=false;
