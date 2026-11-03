@@ -98,6 +98,17 @@ table.db-table tr:hover td{background:var(--accent-light)}
 .recent-item .ri-meta{font-size:11px;opacity:.6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .recent-empty{padding:4px 20px 6px;font-size:11px;color:rgba(255,255,255,.4)}
 /* Barra de viajeros en consulta (pestañas) */
+.step-bar{position:sticky;top:60px;z-index:50;display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:space-between;background:var(--bg);padding:10px 0 12px;margin:-12px 0 18px;border-bottom:1px solid var(--border)}
+.step-tabs{display:flex;gap:4px;flex-wrap:wrap}
+.step-tab{display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border:1px solid var(--border);background:#fff;border-radius:20px;font-family:inherit;font-size:13px;color:var(--text);cursor:pointer;transition:all .15s}
+.step-tab span{width:18px;height:18px;border-radius:50%;background:var(--accent-light);color:var(--primary);font-size:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center}
+.step-tab:hover{border-color:var(--accent)}
+.step-tab.active{background:var(--primary);border-color:var(--primary);color:#fff;font-weight:500}
+.step-tab.active span{background:#7ec89a}
+.step-actions{display:flex;align-items:center;gap:8px}
+.save-status{font-size:12px;color:var(--text-muted);white-space:nowrap}
+.save-status.ok{color:var(--accent);font-weight:500}
+.save-status.warn{color:#b26a00;font-weight:500}
 .group-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:22px;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow)}
 .gb-label{font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--text-muted);margin-right:4px}
 .ptab{display:inline-flex;align-items:center;gap:6px;padding:5px 6px 5px 12px;border:1px solid var(--border);border-radius:20px;cursor:pointer;font-size:13px;background:#fff;transition:all .15s;user-select:none}
@@ -154,6 +165,20 @@ table.mx tr.mx-sep td{border-top:2px solid var(--border)}
 </nav>
 <main class="main-content">
 <div id="groupBar" class="group-bar"></div>
+<div id="stepBar" class="step-bar">
+  <div class="step-tabs">
+    <button class="step-tab active" data-sec="paciente" onclick="showSection('paciente')"><span>1</span>Paciente</button>
+    <button class="step-tab" data-sec="antecedentes" onclick="showSection('antecedentes')"><span>2</span>Antecedentes</button>
+    <button class="step-tab" data-sec="viaje" onclick="showSection('viaje')"><span>3</span>Viaje</button>
+    <button class="step-tab" data-sec="vacunas" onclick="showSection('vacunas')"><span>4</span>Vacunas</button>
+    <button class="step-tab" data-sec="resumen" onclick="showSection('resumen')"><span>5</span>Resumen</button>
+  </div>
+  <div class="step-actions">
+    <span id="stepStatus" class="save-status"></span>
+    <button class="btn btn-accent btn-sm" id="btnQuickSave" onclick="quickSave()">💾 Guardar</button>
+    <button class="btn btn-secondary btn-sm" onclick="saveCase()" title="Guarda y copia el texto plano para pegar en la historia clínica">📋 Copiar historia</button>
+  </div>
+</div>
 
 <!-- S1 PACIENTE -->
 <div class="tab-content active" id="sec-paciente">
@@ -851,6 +876,9 @@ function showSection(name){
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('sec-'+name).classList.add('active');
   const n=document.getElementById('nav-'+name);if(n)n.classList.add('active');
+  const isForm=['paciente','antecedentes','viaje','vacunas','resumen'].includes(name);
+  document.querySelectorAll('.step-tab').forEach(t=>t.classList.toggle('active',t.dataset.sec===name));
+  ['stepBar','groupBar'].forEach(id=>{const e=document.getElementById(id);if(e)e.classList.toggle('hidden',!isForm);});
   if(name==='resumen')buildSummary();
   if(name==='db')loadDB();
   onSectionShown(name);
@@ -1493,10 +1521,41 @@ function saveCase(){
   if(r==='incompleto'){alert('Completa al menos las iniciales, fecha de nacimiento y sexo.');return;}
   if(r==='cancelado')return;
   linkGroupInDB();
+  m.savedAt=new Date();
   document.getElementById('caseIDDisplay').textContent=m.data.id;
   updateHeaderCount();afterSessionChange();updateSaveButtons();
-  const st=document.getElementById('autosaveStatus');if(st)st.textContent='✓ Guardado';
+  if(!document.getElementById('sec-resumen').classList.contains('active'))showSection('resumen');
   copyHistoria(true);
+}
+// Guardar sin copiar ni cambiar de pantalla (botón de la barra superior)
+function quickSave(){
+  clearTimeout(_autoT);_autoPending=false;
+  snapshotActive();propagateTrip();
+  const m=activeMember();
+  const r=saveMember(m);
+  if(r==='incompleto'){alert('Para guardar hacen falta al menos iniciales, fecha de nacimiento y sexo (pestaña Paciente).');renderSaveStatus();return;}
+  if(r==='cancelado'){renderSaveStatus();return;}
+  m.savedAt=new Date();
+  // en grupo, guardar también los compañeros ya guardados con cambios
+  SESSION.members.forEach(o=>{if(o!==m&&o.uid&&o.dirty&&saveMember(o)!=='incompleto')o.savedAt=new Date();});
+  linkGroupInDB();
+  document.getElementById('caseIDDisplay').textContent=m.data.id;
+  updateHeaderCount();afterSessionChange();updateSaveButtons();
+  showToast(r==='nuevo'?'Paciente guardado — a partir de ahora se guarda solo':'Guardado');
+}
+function hhmm(d){d=new Date(d);return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}
+function renderSaveStatus(){
+  if(!SESSION)return;
+  const m=activeMember();let txt='',cls='';
+  if(!m.uid){
+    const d=m.data||{};
+    const vacio=!document.getElementById('iniciales').value&&!d.iniciales&&!m.dirty;
+    txt=vacio?'':'● Sin guardar — pulsa Guardar';cls=vacio?'':'warn';
+  } else if(_autoPending||m.dirty){txt='Guardando…';}
+  else {txt='✓ Guardado'+(m.savedAt?' '+hhmm(m.savedAt):'');cls='ok';}
+  ['stepStatus','autosaveStatus'].forEach(id=>{const e=document.getElementById(id);if(e){e.textContent=txt;e.className='save-status '+cls;}});
+  const b=document.getElementById('btnQuickSave');
+  if(b)b.textContent=m.uid&&!m.dirty?'✓ Guardado':'💾 Guardar';
 }
 function getDB(){try{return JSON.parse(localStorage.getItem('consultaViajero_db')||'[]');}catch{return[];}}
 function saveDB(db){localStorage.setItem('consultaViajero_db',JSON.stringify(db));}
@@ -1799,9 +1858,9 @@ function updateSaveButtons(){
   if(!SESSION)return;
   const n=SESSION.members.length,m=activeMember();
   const b=document.getElementById('btnSave');
-  b.textContent=m.uid?'📋 Copiar texto para historia':(n>1?'💾 Guardar este viajero y copiar':'💾 Guardar y copiar para historia');
-  b.title=m.uid?'El caso ya está guardado y se actualiza automáticamente':'';
+  b.textContent=n>1?'📋 Guardar este viajero y copiar historia':'📋 Guardar y copiar para historia';
   renderHistoria();
+  renderSaveStatus();
   document.getElementById('btnSaveGroup').classList.toggle('hidden',n<2);
   document.getElementById('btnGroupPrompt').classList.toggle('hidden',n<2);
 }
@@ -1877,7 +1936,7 @@ function saveGroup(){
     if(m.uid&&!m.dirty)return;
     const r=saveMember(m);
     if(r==='incompleto')incompletos.push(memberLabel(m,i));
-    else if(r!=='cancelado')ok++;
+    else if(r!=='cancelado'){ok++;m.savedAt=new Date();}
   });
   linkGroupInDB();
   const am=activeMember();if(am.uid)document.getElementById('caseIDDisplay').textContent=am.data.id;
@@ -1904,7 +1963,7 @@ function openRecord(uid,mode){
     showToast('Nueva visita de '+d.id+' — revisa viaje y fechas');return;
   }
   const recs=rec.grupoId?db.filter(c=>c.grupoId===rec.grupoId):[rec];
-  SESSION={members:recs.map(r=>({tmpId:newUid(),uid:r.uid,dirty:false,data:clone(r)})),active:Math.max(0,recs.indexOf(rec)),grupoId:rec.grupoId||null,sharedTrip:recs.length>1?tripsEqual(recs):true};
+  SESSION={members:recs.map(r=>({tmpId:newUid(),uid:r.uid,dirty:false,savedAt:r.actualizado||null,data:clone(r)})),active:Math.max(0,recs.indexOf(rec)),grupoId:rec.grupoId||null,sharedTrip:recs.length>1?tripsEqual(recs):true};
   applyFormState(activeMember().data);
   afterSessionChange();showSection('resumen');
   if(recs.length>1)showToast('Grupo de '+recs.length+' viajeros abierto');
@@ -2060,14 +2119,15 @@ function markDirty(e){
 // ══════════════════════════════════════════
 // AUTOGUARDADO (casos ya guardados una vez)
 // ══════════════════════════════════════════
-let _autoT=null;
+let _autoT=null,_autoPending=false;
 function scheduleAutosave(){
-  if(!SESSION||!SESSION.members.some(m=>m.uid))return;
-  const st=document.getElementById('autosaveStatus');if(st)st.textContent='Guardando…';
+  if(!SESSION||!SESSION.members.some(m=>m.uid)){renderSaveStatus();return;}
+  _autoPending=true;renderSaveStatus();
   clearTimeout(_autoT);
   _autoT=setTimeout(autosave,1200);
 }
 function autosave(){
+  _autoPending=false;
   if(!SESSION)return;
   snapshotActive();propagateTrip();
   const db=getDB();let n=0;
@@ -2075,12 +2135,10 @@ function autosave(){
     if(!m.uid||!m.dirty)return;
     if(!db.some(c=>c.uid===m.uid)){m.uid=null;return;} // borrado de la BD: no recrear sin preguntar
     const d=m.data;if(!d.iniciales||!d.fechaNac||!d.sexo)return;
-    if(saveMember(m)==='actualizado')n++;
+    if(saveMember(m)==='actualizado'){n++;m.savedAt=new Date();}
   });
   const am=activeMember();if(am.uid&&am.data.id)document.getElementById('caseIDDisplay').textContent=am.data.id;
   renderTabs();renderRecent();persistSession();updateSaveButtons();
-  const st=document.getElementById('autosaveStatus');
-  if(st)st.textContent=am.uid?(am.dirty?'Cambios sin guardar':'✓ Guardado automáticamente'):'';
 }
 
 // ══════════════════════════════════════════
@@ -2180,7 +2238,6 @@ function renderHistoria(){
   snapshotActive();
   document.getElementById('historiaText').value=buildHistoriaText(m.data,companerosDe(SESSION.active));
   document.getElementById('historiaTitle').textContent='Texto para la historia clínica — '+(m.data.id||'');
-  document.getElementById('autosaveStatus').textContent=m.dirty?'Guardando…':'✓ Guardado';
   sec.classList.remove('hidden');
 }
 function copyText(txt){
