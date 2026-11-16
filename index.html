@@ -6,7 +6,7 @@
 <title>Consulta del Viajero</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
 :root{--bg:#f5f3ee;--surface:#fff;--primary:#1a3a2a;--accent:#4a7c59;--accent-light:#e8f0eb;--text:#1c1c1c;--text-muted:#6b7280;--border:#ddd8ce;--danger:#c0392b;--radius:10px;--shadow:0 2px 16px rgba(0,0,0,.07)}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px}
@@ -137,14 +137,78 @@ table.mx tr.mx-sep td{border-top:2px solid var(--border)}
 .mx-c input[type="checkbox"]{width:16px;height:16px;accent-color:var(--accent);cursor:pointer;vertical-align:middle}
 .mx-c select{width:auto;padding:3px 4px;font-size:12px;margin-left:4px;display:inline-block}
 .db-search{flex:1;min-width:220px;max-width:360px}
+/* ===== Rediseño clínico: sans única, azul institucional, bordes finos, sin sombras ===== */
+:root{--bg:#f3f5f7;--surface:#fff;--primary:#0f3f6e;--accent:#0f5fa6;--accent-light:#e9f1f8;--text:#15202b;--text-muted:#566471;--border:#d3dae1;--danger:#a4262c;--radius:4px;--shadow:none}
+body{font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:14px;background:var(--bg)}
+header{background:#fff;color:var(--text);border-bottom:1px solid var(--border);box-shadow:none;height:52px;padding:0 24px}
+header h1{font-family:'IBM Plex Sans',sans-serif;font-size:15px;font-weight:600;letter-spacing:0;color:var(--primary)}
+header h1::before{content:"";display:inline-block;width:10px;height:10px;background:var(--primary);margin-right:10px;vertical-align:0}
+.header-actions span{opacity:1;color:var(--text-muted);font-size:12px;margin-right:6px}
+.app-layout{grid-template-columns:232px 1fr;min-height:calc(100vh - 52px)}
+.sidebar{background:#fff;border-right:1px solid var(--border);top:52px;height:calc(100vh - 52px);padding:12px 0}
+.sidebar-section{color:var(--text-muted);font-size:11px;text-transform:none;letter-spacing:0;font-weight:600;padding:14px 20px 6px;margin-top:6px}
+.nav-item{color:var(--text);padding:8px 20px;font-size:13px;border-left:2px solid transparent}
+.nav-item:hover{background:var(--bg);color:var(--text)}
+.nav-item.active{background:var(--accent-light);color:var(--primary);font-weight:600;border-left-color:var(--primary)}
+.nav-item .step-num{width:auto;height:auto;background:none;border-radius:0;font-size:12px;color:var(--text-muted);width:16px;justify-content:flex-start;font-variant-numeric:tabular-nums}
+.nav-item.active .step-num{background:none;color:var(--primary)}
+.main-content{padding:24px 32px 48px;max-width:1080px}
+.section-header{margin-bottom:18px}
+.section-header h2{font-family:'IBM Plex Sans',sans-serif;font-size:20px;font-weight:600;color:var(--text);letter-spacing:-.01em}
+.section-header p{color:var(--text-muted)}
+.card{border-radius:var(--radius);box-shadow:none;padding:20px 22px;margin-bottom:16px}
+.card-title{font-size:13px;font-weight:600;text-transform:none;letter-spacing:0;color:var(--text);border-bottom:1px solid var(--border);padding-bottom:10px;margin-bottom:16px}
+label{font-size:12px;font-weight:600;text-transform:none;letter-spacing:0;color:var(--text)}
+input[type="text"],input[type="number"],input[type="date"],select,textarea{border-radius:3px;border-color:#b9c3cd;padding:8px 10px;font-family:'IBM Plex Sans',sans-serif}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(15,95,166,.25)}
+.check-chip,.radio-chip,.step-tab,.ptab{border-radius:3px;border-color:#b9c3cd}
+.check-chip:hover,.radio-chip:hover,.step-tab:hover,.ptab:hover{border-color:var(--accent);background:var(--accent-light)}
+.check-chip.selected{background:var(--accent-light);border-color:var(--accent);color:var(--primary);font-weight:500}
+.radio-chip.selected,.step-tab.active,.ptab.active{background:var(--primary);border-color:var(--primary);color:#fff}
+.step-tab span{border-radius:2px;background:var(--bg)}
+.step-tab.active span{background:rgba(255,255,255,.2);color:#fff}
+.ptab.active .pt-saved,.nav-item.active .step-num{color:inherit}
+.btn{border-radius:3px;font-family:'IBM Plex Sans',sans-serif;font-weight:500}
+.btn-primary{background:var(--primary)}.btn-primary:hover{background:#0a2f54}
+.btn-accent{background:var(--accent)}.btn-accent:hover{background:#0b4e88}
+.btn-secondary{border-color:#b9c3cd}.btn-secondary:hover{border-color:var(--accent);background:var(--accent-light)}
+.step-bar{background:var(--bg)}
+.alert,.shared-banner{border-radius:3px}
+.alert-warning{background:#fff8e6;border-color:#e3c35a;color:#5e4700}
+.summary-block{background:#fff;border:1px solid var(--border);border-left:3px solid var(--primary);border-radius:3px}
+.summary-block h3{font-size:12px;text-transform:none;letter-spacing:0;color:var(--text);font-weight:600}
+.id-badge{border-radius:3px;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:15px;letter-spacing:.06em;background:var(--accent-light);color:var(--primary);border:1px solid #b6cfe6}
+.days-badge,.badge{border-radius:3px}
+table.db-table th{background:#eaeef2;color:var(--text);text-transform:none;font-size:12px;font-weight:600;border-bottom:1px solid #b9c3cd}
+table.db-table td{font-variant-numeric:tabular-nums}
+table.mx th{text-transform:none;letter-spacing:0;font-size:12px;color:var(--text)}
+table.mx th.mx-p.mx-active{border-radius:0}
+.group-bar{box-shadow:none;border-radius:3px}
+.gb-label{text-transform:none;letter-spacing:0;font-size:12px}
+.destino-item,.vacuna-row{border-radius:3px}
+.modal{border-radius:4px;box-shadow:0 8px 24px rgba(0,0,0,.2)}
+.modal h3{font-family:'IBM Plex Sans',sans-serif;font-weight:600;color:var(--text)}
+.prompt-box{border-radius:3px;background:#0f1a24;color:#d8e6f2;font-family:'IBM Plex Mono',ui-monospace,monospace}
+.side-search input[type="text"]{background:#fff;border:1px solid #b9c3cd;color:var(--text)}
+.side-search input::placeholder{color:#7a8794}
+.side-search input:focus{border-color:var(--accent)}
+.recent-item{color:var(--text);border-left:2px solid transparent}
+.recent-item:hover{background:var(--bg);color:var(--text)}
+.recent-item.in-session{border-left-color:var(--primary);background:var(--accent-light);color:var(--primary)}
+.recent-empty{color:var(--text-muted)}
+.save-status.ok{color:#1d6b3a}
+.mx-c input[type="checkbox"],.gb-toggle input{accent-color:var(--primary)}
+@media(max-width:820px){.app-layout{grid-template-columns:1fr}.sidebar{position:static;height:auto;border-right:0;border-bottom:1px solid var(--border)}.main-content{padding:16px}}
+
+@media(max-width:820px){header{padding:0 12px;gap:8px}header h1{font-size:14px;white-space:nowrap}.header-actions{gap:6px}.header-actions span{display:none}.header-actions .btn{white-space:nowrap}}
 </style>
 </head>
 <body>
 <header>
-  <h1>🌍 Consulta del Viajero</h1>
+  <h1>Consulta del Viajero</h1>
   <div class="header-actions">
     <span id="headerCaseCount">0 casos guardados</span>
-    <button class="btn btn-secondary btn-sm" onclick="showSection('db')">📊 Base de datos</button>
+    <button class="btn btn-secondary btn-sm" onclick="showSection('db')">Base de datos</button>
     <button class="btn btn-accent btn-sm" onclick="startNewCase()">+ Nuevo caso</button>
   </div>
 </header>
@@ -157,11 +221,11 @@ table.mx tr.mx-sep td{border-top:2px solid var(--border)}
   <div class="nav-item" id="nav-vacunas" onclick="showSection('vacunas')"><div class="step-num"><span>4</span></div> Vacunas previas</div>
   <div class="nav-item" id="nav-resumen" onclick="showSection('resumen')"><div class="step-num"><span>5</span></div> Resumen y outputs</div>
   <div class="sidebar-section">Pacientes</div>
-  <div class="side-search"><input type="text" id="sideSearch" placeholder="🔍 Buscar ID, destino, fecha…" oninput="renderRecent()"></div>
+  <div class="side-search"><input type="text" id="sideSearch" placeholder="Buscar ID, destino, fecha…" oninput="renderRecent()"></div>
   <div id="recentList"></div>
   <div class="sidebar-section">Herramientas</div>
-  <div class="nav-item" id="nav-malaria" onclick="showSection('malaria')"><div class="step-num"><span>🦟</span></div> Guia malaria</div>
-  <div class="nav-item" id="nav-db" onclick="showSection('db')"><div class="step-num"><span>📋</span></div> Base de datos</div>
+  <div class="nav-item" id="nav-malaria" onclick="showSection('malaria')"><div class="step-num"><span></span></div> Guia malaria</div>
+  <div class="nav-item" id="nav-db" onclick="showSection('db')"><div class="step-num"><span></span></div> Base de datos</div>
 </nav>
 <main class="main-content">
 <div id="groupBar" class="group-bar"></div>
@@ -175,8 +239,8 @@ table.mx tr.mx-sep td{border-top:2px solid var(--border)}
   </div>
   <div class="step-actions">
     <span id="stepStatus" class="save-status"></span>
-    <button class="btn btn-accent btn-sm" id="btnQuickSave" onclick="quickSave()">💾 Guardar</button>
-    <button class="btn btn-secondary btn-sm" onclick="saveCase()" title="Guarda y copia el texto plano para pegar en la historia clínica">📋 Copiar historia</button>
+    <button class="btn btn-accent btn-sm" id="btnQuickSave" onclick="quickSave()">Guardar</button>
+    <button class="btn btn-secondary btn-sm" onclick="saveCase()" title="Guarda y copia el texto plano para pegar en la historia clínica">Copiar historia</button>
   </div>
 </div>
 
@@ -191,7 +255,7 @@ table.mx tr.mx-sep td{border-top:2px solid var(--border)}
       <div class="form-group"><label>Edad (calculada)</label><input type="number" id="edad" readonly style="background:#f9f9f9"></div>
       <div class="form-group" id="edadVacunaWarnBox" style="display:none;grid-column:span 2">
         <div style="border:1px solid #e59866;background:#fef5ec;border-radius:8px;padding:10px 14px;font-size:12px;color:#7d3c0a">
-          <strong>👴 Edad ≥65 años — valorar vacunas vivas individualmente</strong><br>
+          <strong>Edad ≥65 años — valorar vacunas vivas individualmente</strong><br>
           La <strong>fiebre amarilla</strong> tiene mayor riesgo de enfermedad viscerotrópica grave (YEL-AVD) en mayores de 65 años. La <strong>tifoidea oral (Ty21a)</strong> requiere también valoración individualizada. Evaluar siempre riesgo-beneficio según destino.
         </div>
       </div>
@@ -206,7 +270,7 @@ table.mx tr.mx-sep td{border-top:2px solid var(--border)}
       </div>
     </div>
     <div id="embarazoSection" class="hidden" style="margin-top:16px">
-      <div class="alert alert-warning">⚠️ Paciente de sexo femenino en edad fértil</div>
+      <div class="alert alert-warning">Paciente de sexo femenino en edad fértil</div>
       <div class="form-group">
         <label>Posibilidad de embarazo</label>
         <div class="radio-group" id="embarazoGroup">
@@ -480,17 +544,17 @@ table.mx tr.mx-sep td{border-top:2px solid var(--border)}
     <button class="btn btn-secondary" onclick="showSection('vacunas')">Atras</button>
     <div style="flex:1"></div>
     <button class="btn btn-secondary" onclick="generatePrompt()">Generar prompt para Claude</button>
-    <button class="btn btn-secondary hidden" id="btnGroupPrompt" onclick="generateGroupPrompt()">👥 Prompt de grupo</button>
+    <button class="btn btn-secondary hidden" id="btnGroupPrompt" onclick="generateGroupPrompt()">Prompt de grupo</button>
     <button class="btn btn-secondary" id="btnWord" onclick="generateWord()">Informe Word</button>
-    <button class="btn btn-accent hidden" id="btnSaveGroup" onclick="saveGroup()">👥 Guardar grupo</button>
-    <button class="btn btn-primary" id="btnSave" onclick="saveCase()">💾 Guardar y copiar para historia</button>
+    <button class="btn btn-accent hidden" id="btnSaveGroup" onclick="saveGroup()">Guardar grupo</button>
+    <button class="btn btn-primary" id="btnSave" onclick="saveCase()">Guardar y copiar para historia</button>
   </div>
   <div id="historiaSection" class="hidden" style="margin-top:20px">
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
         <div class="card-title" id="historiaTitle" style="margin:0;border:none">Texto para la historia clínica</div>
         <span id="autosaveStatus" style="font-size:12px;color:var(--text-muted);margin-left:auto"></span>
-        <button class="btn btn-accent btn-sm" onclick="copyHistoria()">📋 Copiar</button>
+        <button class="btn btn-accent btn-sm" onclick="copyHistoria()">Copiar</button>
       </div>
       <textarea id="historiaText" readonly rows="16" style="font-family:'DM Sans',sans-serif;font-size:13px;line-height:1.55;background:#fbfaf7;resize:vertical"></textarea>
       <p style="font-size:11px;color:var(--text-muted);margin-top:6px">Texto plano, sin formato, listo para pegar en el campo de texto libre. Se actualiza solo si cambias algo del caso.</p>
@@ -525,12 +589,12 @@ table.mx tr.mx-sep td{border-top:2px solid var(--border)}
   <div class="card" style="background:#f9f9f7;border-style:dashed">
     <div class="card-title">Leyenda de niveles de riesgo</div>
     <div style="display:flex;flex-wrap:wrap;gap:10px;font-size:13px">
-      <span style="background:#fdecea;border:1px solid #f0c0bb;padding:4px 12px;border-radius:20px;color:#c0392b;font-weight:600">ALTO — MAM + QP</span>
-      <span style="background:#fef9ec;border:1px solid #f0d060;padding:4px 12px;border-radius:20px;color:#7a5c00;font-weight:600">MODERADO — MAM + valorar TREM</span>
-      <span style="background:#eafaf1;border:1px solid #82d8a0;padding:4px 12px;border-radius:20px;color:#1a6b3a;font-weight:600">BAJO — MAM</span>
-      <span style="background:#e8f0eb;border:1px solid #b5d4be;padding:4px 12px;border-radius:20px;color:#1a3a2a;font-weight:600">MUY BAJO — MAM</span>
-      <span style="background:#f0f0f0;border:1px solid #ccc;padding:4px 12px;border-radius:20px;color:#555;font-weight:600">ELIMINACION / LIBRE</span>
-      <span style="background:#fff;border:1px solid #ccc;padding:4px 12px;border-radius:20px;color:#888;font-weight:600">SIN RIESGO</span>
+      <span style="background:#fdecea;border:1px solid #f0c0bb;padding:4px 10px;border-radius:3px;color:#c0392b;font-weight:600">ALTO — MAM + QP</span>
+      <span style="background:#fef9ec;border:1px solid #f0d060;padding:4px 10px;border-radius:3px;color:#7a5c00;font-weight:600">MODERADO — MAM + valorar TREM</span>
+      <span style="background:#eafaf1;border:1px solid #82d8a0;padding:4px 10px;border-radius:3px;color:#1a6b3a;font-weight:600">BAJO — MAM</span>
+      <span style="background:#e8f0eb;border:1px solid #b5d4be;padding:4px 10px;border-radius:3px;color:#1a3a2a;font-weight:600">MUY BAJO — MAM</span>
+      <span style="background:#f0f0f0;border:1px solid #ccc;padding:4px 10px;border-radius:3px;color:#555;font-weight:600">ELIMINACION / LIBRE</span>
+      <span style="background:#fff;border:1px solid #ccc;padding:4px 10px;border-radius:3px;color:#888;font-weight:600">SIN RIESGO</span>
     </div>
     <p style="font-size:11px;color:var(--text-muted);margin-top:10px">QP = quimioprofilaxis (A/P, doxiciclina o mefloquina segun indicacion). TREM = tratamiento de emergencia. MAM = medidas antimosquito.</p>
   </div>
@@ -540,7 +604,7 @@ table.mx tr.mx-sep td{border-top:2px solid var(--border)}
 <div class="tab-content" id="sec-db">
   <div class="section-header"><h2>Base de datos de casos</h2><p>Registro acumulativo anonimizado</p></div>
   <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap">
-    <input type="text" id="dbSearch" class="db-search" placeholder="🔍 Buscar por ID, iniciales, fecha nac., destino, fecha…" oninput="loadDB()">
+    <input type="text" id="dbSearch" class="db-search" placeholder="Buscar por ID, iniciales, fecha nac., destino, fecha…" oninput="loadDB()">
     <button class="btn btn-primary" onclick="exportCSV()">Exportar todo a CSV</button>
     <button class="btn btn-secondary" onclick="loadDB()">Actualizar</button>
     <button class="btn btn-danger" onclick="confirmClearDB()">Borrar base de datos</button>
@@ -563,7 +627,7 @@ table.mx tr.mx-sep td{border-top:2px solid var(--border)}
 <!-- Word Download Modal -->
 <div id="wordModalOverlay" class="modal-overlay hidden">
   <div class="modal" style="max-width:460px;text-align:center">
-    <div style="font-size:48px;margin-bottom:12px">📄</div>
+    <div style="font-size:48px;margin-bottom:12px"></div>
     <h3 style="margin-bottom:8px">Informe generado</h3>
     <p style="font-size:12px;color:var(--text-muted);margin-bottom:4px" id="wordModalFileName"></p>
     <div style="background:#fef9ec;border:1px solid #f0d060;border-radius:8px;padding:12px;margin:16px 0;font-size:13px;color:#7a5c00;text-align:left">
@@ -574,7 +638,7 @@ table.mx tr.mx-sep td{border-top:2px solid var(--border)}
     </div>
     <button id="wordOpenBtn" style="display:inline-block;background:var(--primary);color:white;padding:12px 28px;border-radius:8px;border:none;cursor:pointer;font-weight:600;font-size:15px;margin-bottom:16px;font-family:inherit"
       onclick="wordOpenInTab()">
-      📄 Abrir documento
+      Abrir documento
     </button>
     <br>
     <button class="btn btn-secondary btn-sm" onclick="document.getElementById('wordModalOverlay').classList.add('hidden')" style="margin-top:8px">Cerrar</button>
